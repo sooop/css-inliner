@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Inline Converter</title>
+    <link rel="stylesheet" href="/styles/app.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CSS Inline Converter</h1>
+            <div class="header-actions">
+                <button id="themeToggle" class="icon-btn" title="테마 변경">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="css-menubar">
+            <button id="openCssModalBtn">CSS 입력</button>
+            <button id="cssFileBtn" class="file-trigger">CSS 파일 가져오기</button>
+            <input type="file" id="cssFile" accept=".css" hidden>
+            <div class="dropdown">
+                <button class="dropdown-trigger" id="templateDropdownBtn">템플릿 ▾</button>
+                <div class="dropdown-menu">
+                    <button id="downloadTemplateBtn">다운로드</button>
+                    <button id="copyTemplateBtn">복사</button>
+                </div>
+            </div>
+            <label class="css-toggle">
+                <input type="checkbox" id="useBuiltInCSS" checked>
+                내장 CSS 사용
+            </label>
+        </div>
+
+        <div class="split-panes">
+            <div class="pane-left">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>HTML 입력</span>
+                        <div class="panel-header-actions">
+                            <label><input type="checkbox" id="autoConvert"> 자동변환</label>
+                            <label><input type="checkbox" id="removeWhitespace"> 공백 제거</label>
+                            <label><input type="checkbox" id="bodyOnly"> Body Only</label>
+                            <button class="primary" id="convertBtn">변환</button>
+                        </div>
+                    </div>
+                    <textarea id="htmlInput" placeholder="HTML 코드를 입력하세요..."></textarea>
+                </div>
+            </div>
+
+            <div class="resizer" title="좌우로 드래그하여 크기 조정"></div>
+
+            <div class="pane-right">
+                <div class="output-section">
+                    <div class="tabs">
+                        <button class="tab active" data-tab="inline-preview">인라인 미리보기</button>
+                        <button class="tab" data-tab="preview">스타일 미리보기</button>
+                        <button class="tab" data-tab="code">인라인 코드</button>
+                    </div>
+
+                    <div id="inline-preview" class="tab-content active">
+                        <div class="panel-header">
+                            <span>인라인 미리보기</span>
+                            <div class="panel-actions">
+                                <button id="copyInlinePreviewBtn">복사</button>
+                            </div>
+                        </div>
+                        <iframe id="inlinePreviewFrame" class="preview-frame"></iframe>
+                    </div>
+
+                    <div id="preview" class="tab-content">
+                        <div class="panel-header">
+                            <span>스타일 미리보기</span>
+                            <div class="panel-actions">
+                                <button id="copyPreviewBtn">복사</button>
+                            </div>
+                        </div>
+                        <iframe id="previewFrame" class="preview-frame"></iframe>
+                    </div>
+
+                    <div id="code" class="tab-content">
+                        <div class="panel-header">
+                            <span>인라인 HTML</span>
+                            <div class="panel-actions">
+                                <button id="downloadCodeBtn">다운로드</button>
+                                <button id="copyCodeBtn">복사</button>
+                            </div>
+                        </div>
+                        <pre id="inlineCode"><div class="empty-state">변환 버튼을 클릭하여 결과를 생성하세요</div></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <dialog id="cssModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>CSS 입력</h2>
+                <button class="close-btn" aria-label="닫기">✕</button>
+            </div>
+            <div class="modal-body">
+                <textarea id="cssInput" placeholder="사용자 정의 CSS 입력..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="applyCssBtn" class="primary">적용</button>
+                <button id="cancelCssBtn">취소</button>
+            </div>
+        </div>
+    </dialog>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
