@@ -10,7 +10,8 @@ import {
   updatePreview,
   displayInlineCode,
   showToast,
-  initDragDrop
+  initDragDrop,
+  initHistoryModal
 } from './modules/ui-controller.js';
 import { convertToInline, createPreview } from './modules/css-converter.js';
 import {
@@ -19,6 +20,13 @@ import {
   copyTemplateCSS
 } from './modules/template-manager.js';
 import { removeWhitespace, extractBody } from './modules/utils.js';
+import {
+  saveHistory,
+  loadHistoryList,
+  loadHistoryItem,
+  deleteHistoryItem,
+  clearHistory
+} from './modules/history-manager.js';
 
 // UI 컨트롤러 초기화
 initUIController();
@@ -28,6 +36,7 @@ initModal();
 initAutoSave();
 initKeyboardShortcuts();
 initDragDrop();
+initHistoryModal(loadHistoryList, loadHistoryItem, deleteHistoryItem, clearHistory, showToast);
 
 // CSS 파일 버튼
 document.getElementById('cssFileBtn').addEventListener('click', () => {
@@ -117,7 +126,10 @@ document.getElementById('convertBtn').addEventListener('click', () => {
   const useBuiltInCSS = document.getElementById('useBuiltInCSS').checked;
 
   if (!htmlInput.trim()) {
-    showToast('HTML을 입력해주세요.', 'error');
+    // 입력이 없으면 결과 클리어
+    updatePreview('previewFrame', '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>');
+    updatePreview('inlinePreviewFrame', '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>');
+    displayInlineCode('');
     return;
   }
 
@@ -148,15 +160,19 @@ document.getElementById('convertBtn').addEventListener('click', () => {
   // 인라인 코드 표시
   displayInlineCode(result);
 
-  // 변환 완료 애니메이션
+  // 변환 완료 애니메이션 (오버레이)
   const paneRight = document.querySelector('.pane-right');
-  paneRight.classList.remove('flash-success');
-  void paneRight.offsetWidth; // reflow 강제
-  paneRight.classList.add('flash-success');
+  const overlay = document.createElement('div');
+  overlay.className = 'success-overlay';
+  overlay.innerHTML = '<div class="success-overlay-icon">✓</div>';
+
+  // pane-right에 position: relative 추가 (CSS에서 처리됨)
+  paneRight.style.position = 'relative';
+  paneRight.appendChild(overlay);
 
   setTimeout(() => {
-    paneRight.classList.remove('flash-success');
-  }, 600);
+    overlay.remove();
+  }, 800);
 
   // 자동 최대화 옵션 확인
   const autoMaximize = localStorage.getItem('auto-maximize-result') === 'true';
@@ -165,4 +181,15 @@ document.getElementById('convertBtn').addEventListener('click', () => {
     paneLeft.style.flex = '0.1';
     paneRight.style.flex = '0.9';
   }
+
+  // 이력 저장
+  saveHistory({
+    htmlInput: htmlInput,
+    cssInput: finalCSS,
+    options: {
+      useBuiltInCSS: useBuiltInCSS,
+      bodyOnly: bodyOnly,
+      removeWhitespace: document.getElementById('removeWhitespace').checked
+    }
+  });
 });

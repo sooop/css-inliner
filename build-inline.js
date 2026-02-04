@@ -4,8 +4,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// dist 폴더 경로 (src/dist 또는 dist)
-const distPath = join(__dirname, 'src', 'dist');
+// dist 폴더 경로 (Vite 빌드 출력과 일치)
+const distPath = join(__dirname, 'dist');
 const htmlPath = join(distPath, 'index.html');
 const assetsPath = join(distPath, 'assets');
 

@@ -18,6 +18,7 @@
         </header>
 
         <div class="css-menubar">
+            <button id="openHistoryBtn">이력</button>
             <button id="openCssModalBtn">CSS 입력</button>
             <button id="cssFileBtn" class="file-trigger">CSS 파일 가져오기</button>
             <input type="file" id="cssFile" accept=".css" hidden>
@@ -107,6 +108,23 @@
             <div class="modal-footer">
                 <button id="applyCssBtn" class="primary">적용</button>
                 <button id="cancelCssBtn">취소</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>변환 이력</h2>
+                <button id="closeHistoryModal" class="close-btn" aria-label="닫기">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="historyList" class="history-list">
+                    <div class="empty-state">이력이 없습니다</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="clearHistoryBtn">전체 삭제</button>
             </div>
         </div>
     </dialog>

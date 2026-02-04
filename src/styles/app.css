@@ -99,7 +99,7 @@ header {
 }
 
 h1 {
-    font-size: var(--text-3xl);
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--text-primary);
 }
@@ -271,12 +271,17 @@ input[type="file"] {
     align-items: center;
 }
 
+.css-menubar button {
+    padding: 6px 14px;
+    font-size: var(--text-sm);
+}
+
 .css-toggle {
     margin-left: auto;
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    font-size: var(--text-sm);
+    font-size: var(--text-md);
 }
 
 .dropdown {
@@ -362,21 +367,32 @@ textarea {
     display: flex;
     border-bottom: 1px solid var(--border);
     background: var(--bg-surface);
+    gap: 0;
 }
 
 .tab {
-    padding: 10px 20px;
+    padding: 12px 20px;
     border: none;
-    background: none;
+    border-radius: 0;
+    background: transparent;
     cursor: pointer;
     font-size: var(--text-sm);
+    font-weight: 500;
     color: var(--text-secondary);
     border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+    background: transparent;
 }
 
 .tab.active {
     color: var(--accent);
     border-bottom-color: var(--accent);
+    background: transparent;
 }
 
 .tab-content {
@@ -414,6 +430,11 @@ pre {
 
 /* 모달 (Native Stone: no shadow, border only) */
 dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
     max-width: 800px;
     width: 90vw;
     max-height: 80vh;
@@ -421,6 +442,7 @@ dialog {
     border-radius: var(--radius-lg);
     padding: 0;
     background: var(--bg-surface);
+    overflow: hidden;
 }
 
 dialog::backdrop {
@@ -469,12 +491,21 @@ dialog::backdrop {
 
 .modal-body {
     flex: 1;
-    padding: var(--sp-5);
-    overflow: auto;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-body textarea {
-    height: 500px;
+    flex: 1;
+    min-height: 400px;
+    width: 100%;
+    padding: var(--sp-5);
+    border: none;
+    resize: none;
+    overflow-y: auto;
+    background: white;
 }
 
 .modal-footer {
@@ -484,6 +515,11 @@ dialog::backdrop {
     padding: var(--sp-5);
     border-top: 1px solid var(--border);
     flex-shrink: 0;
+}
+
+.modal-footer button {
+    padding: 6px 16px;
+    font-size: var(--text-sm);
 }
 
 /* Split Panes */
@@ -500,6 +536,7 @@ dialog::backdrop {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    transition: all 0.3s ease;
 }
 
 .pane-left .panel {
@@ -519,6 +556,8 @@ dialog::backdrop {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    transition: all 0.3s ease;
+    position: relative;
 }
 
 .pane-right .output-section {
@@ -527,7 +566,13 @@ dialog::backdrop {
     flex-direction: column;
 }
 
-.pane-left.collapsed, .pane-right.collapsed {
+.pane-left.collapsed {
+    flex: 0 !important;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.pane-right.collapsed {
     flex: 0 0 0 !important;
     min-width: 0;
     overflow: hidden;
@@ -558,14 +603,29 @@ dialog::backdrop {
     width: 8px;
     height: auto;
     background: var(--border);
-    cursor: ew-resize;
+    cursor: pointer;
     transition: background 0.2s;
     flex-shrink: 0;
+    position: relative;
 }
 
-.resizer:hover,
-.resizer.resizing {
+.resizer:hover {
     background: var(--accent);
+}
+
+.resizer::before {
+    content: '◀';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    color: var(--text-secondary);
+    transition: transform 0.3s;
+}
+
+.pane-left.collapsed + .resizer::before {
+    content: '▶';
 }
 
 /* Tab content 구조 */
@@ -663,17 +723,139 @@ dialog::backdrop {
     }
 }
 
-@keyframes resultFlash {
-    0%, 100% {
-        background: var(--bg-surface);
+/* Success Overlay */
+.success-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(90, 138, 106, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    pointer-events: none;
+    animation: overlayFade 0.8s ease-out;
+}
+
+[data-theme="dark"] .success-overlay {
+    background: rgba(90, 138, 106, 0.25);
+}
+
+.success-overlay-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--success);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    color: white;
+    animation: iconPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 8px 24px rgba(90, 138, 106, 0.3);
+}
+
+@keyframes overlayFade {
+    0% {
+        opacity: 0;
     }
-    50% {
-        background: var(--success-muted);
+    20% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
     }
 }
 
-.pane-right.flash-success {
-    animation: resultFlash 0.6s ease-out;
+@keyframes iconPop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* History List */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.history-item {
+    padding: var(--sp-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg-surface);
+}
+
+.history-item:hover {
+    background: var(--bg-muted);
+    border-color: var(--border-strong);
+}
+
+.history-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--sp-2);
+}
+
+.history-item-time {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.history-item-delete {
+    padding: 4px 12px;
+    font-size: var(--text-xs);
+    background: var(--error-muted);
+    color: var(--error);
+    border: 1px solid var(--error);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.history-item-delete:hover {
+    background: var(--error);
+    color: white;
+}
+
+.history-item-preview {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-item-options {
+    display: flex;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+}
+
+.history-item-badge {
+    padding: 2px 8px;
+    font-size: var(--text-xs);
+    background: var(--bg-muted);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {

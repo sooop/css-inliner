@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite src",
-    "build": "vite build src && node build-inline.js",
+    "build": "vite build",
     "preview": "vite preview src"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "dexie": "^4.0.11"
+  },
   "devDependencies": {
     "vite": "^7.3.1",
     "vite-plugin-singlefile": "^2.3.0"

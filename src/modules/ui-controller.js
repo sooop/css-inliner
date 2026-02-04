@@ -81,83 +81,31 @@ function applyTheme(theme) {
 }
 
 /**
- * 드래그 리사이저 초기화
+ * 패널 토글 초기화
  */
 export function initResizer() {
   const resizer = document.querySelector('.resizer');
   const paneLeft = document.querySelector('.pane-left');
-  const paneRight = document.querySelector('.pane-right');
-  const container = document.querySelector('.split-panes');
 
-  let isResizing = false;
-  let startX = 0;
-  let startLeftWidth = 0;
-
-  // 저장된 비율 복원
-  const savedRatio = localStorage.getItem('resizer-position-horizontal');
-  if (savedRatio) {
-    paneLeft.style.flex = savedRatio;
-    paneRight.style.flex = String(1 - parseFloat(savedRatio));
+  // 저장된 접힘 상태 복원
+  const isCollapsed = localStorage.getItem('panel-left-collapsed') === 'true';
+  if (isCollapsed) {
+    paneLeft.classList.add('collapsed');
   }
 
-  resizer.addEventListener('mousedown', (e) => {
-    isResizing = true;
-    startX = e.clientX;
-    startLeftWidth = paneLeft.offsetWidth;
-    resizer.classList.add('resizing');
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-  });
+  // 클릭 시 토글
+  resizer.addEventListener('click', () => {
+    const isCurrentlyCollapsed = paneLeft.classList.contains('collapsed');
 
-  document.addEventListener('mousemove', (e) => {
-    if (!isResizing) return;
-
-    const deltaX = e.clientX - startX;
-    const containerWidth = container.offsetWidth;
-    const newLeftWidth = startLeftWidth + deltaX;
-    const ratio = newLeftWidth / containerWidth;
-
-    // 패널 접기
-    if (ratio < 0.05) {
-      paneLeft.classList.add('collapsed');
-      paneRight.classList.remove('collapsed');
-      paneLeft.style.flex = '0';
-      paneRight.style.flex = '1';
-    } else if (ratio > 0.95) {
-      paneRight.classList.add('collapsed');
+    if (isCurrentlyCollapsed) {
+      // 펼치기
       paneLeft.classList.remove('collapsed');
-      paneLeft.style.flex = '1';
-      paneRight.style.flex = '0';
+      localStorage.setItem('panel-left-collapsed', 'false');
     } else {
-      paneLeft.classList.remove('collapsed');
-      paneRight.classList.remove('collapsed');
-      // 최소 너비 제한
-      if (newLeftWidth < 300 || newLeftWidth > containerWidth - 300) return;
-      paneLeft.style.flex = String(ratio);
-      paneRight.style.flex = String(1 - ratio);
+      // 접기
+      paneLeft.classList.add('collapsed');
+      localStorage.setItem('panel-left-collapsed', 'true');
     }
-  });
-
-  document.addEventListener('mouseup', () => {
-    if (isResizing) {
-      isResizing = false;
-      resizer.classList.remove('resizing');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-
-      // 비율 저장
-      const ratio = paneLeft.offsetWidth / container.offsetWidth;
-      localStorage.setItem('resizer-position-horizontal', String(ratio));
-    }
-  });
-
-  // 더블클릭으로 패널 복원
-  resizer.addEventListener('dblclick', () => {
-    paneLeft.classList.remove('collapsed');
-    paneRight.classList.remove('collapsed');
-    paneLeft.style.flex = '1';
-    paneRight.style.flex = '1';
-    localStorage.setItem('resizer-position-horizontal', '0.5');
   });
 }
 
@@ -197,6 +145,119 @@ export function initModal() {
       modal.close();
     }
   });
+}
+
+/**
+ * 이력 모달 열기
+ */
+export async function openHistoryModal(loadHistoryListFn, loadHistoryItemFn, deleteHistoryItemFn, clearHistoryFn, showToastFn) {
+  const modal = document.getElementById('historyModal');
+  const historyList = document.getElementById('historyList');
+
+  // 이력 목록 로드
+  const items = await loadHistoryListFn();
+
+  // 이력 렌더링
+  if (items.length === 0) {
+    historyList.innerHTML = '<div class="empty-state">이력이 없습니다</div>';
+  } else {
+    historyList.innerHTML = items.map(item => `
+      <div class="history-item" data-id="${item.id}">
+        <div class="history-item-header">
+          <span class="history-item-time">${formatTimestamp(item.timestamp)}</span>
+          <button class="history-item-delete" data-id="${item.id}" onclick="event.stopPropagation()">삭제</button>
+        </div>
+        <div class="history-item-preview">${item.preview || 'HTML 내용 없음'}</div>
+        <div class="history-item-options">
+          ${item.options.useBuiltInCSS ? '<span class="history-item-badge">내장 CSS</span>' : ''}
+          ${item.options.bodyOnly ? '<span class="history-item-badge">Body Only</span>' : ''}
+          ${item.options.removeWhitespace ? '<span class="history-item-badge">공백 제거</span>' : ''}
+        </div>
+      </div>
+    `).join('');
+
+    // 이력 항목 클릭 이벤트
+    historyList.querySelectorAll('.history-item').forEach(item => {
+      item.addEventListener('click', async () => {
+        const id = parseInt(item.getAttribute('data-id'));
+        const historyItem = await loadHistoryItemFn(id);
+
+        if (historyItem) {
+          // 입력 영역에 복원
+          document.getElementById('htmlInput').value = historyItem.htmlInput;
+          document.getElementById('cssInput').value = historyItem.cssInput;
+          document.getElementById('useBuiltInCSS').checked = historyItem.options.useBuiltInCSS;
+          document.getElementById('bodyOnly').checked = historyItem.options.bodyOnly;
+          document.getElementById('removeWhitespace').checked = historyItem.options.removeWhitespace;
+
+          // localStorage에도 저장
+          localStorage.setItem('html-input-content', historyItem.htmlInput);
+          localStorage.setItem('css-input-content', historyItem.cssInput);
+          localStorage.setItem('use-builtin-css', historyItem.options.useBuiltInCSS);
+
+          modal.close();
+          showToastFn('이력을 복원했습니다', 'success');
+        }
+      });
+    });
+
+    // 삭제 버튼 클릭 이벤트
+    historyList.querySelectorAll('.history-item-delete').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = parseInt(btn.getAttribute('data-id'));
+        await deleteHistoryItemFn(id);
+        showToastFn('이력을 삭제했습니다', 'success');
+        // 모달 다시 열기
+        openHistoryModal(loadHistoryListFn, loadHistoryItemFn, deleteHistoryItemFn, clearHistoryFn, showToastFn);
+      });
+    });
+  }
+
+  modal.showModal();
+}
+
+/**
+ * 이력 모달 초기화
+ */
+export function initHistoryModal(loadHistoryListFn, loadHistoryItemFn, deleteHistoryItemFn, clearHistoryFn, showToastFn) {
+  const modal = document.getElementById('historyModal');
+  const openBtn = document.getElementById('openHistoryBtn');
+  const closeBtn = document.getElementById('closeHistoryModal');
+  const clearBtn = document.getElementById('clearHistoryBtn');
+
+  openBtn.addEventListener('click', () => {
+    openHistoryModal(loadHistoryListFn, loadHistoryItemFn, deleteHistoryItemFn, clearHistoryFn, showToastFn);
+  });
+
+  closeBtn.addEventListener('click', () => modal.close());
+
+  clearBtn.addEventListener('click', async () => {
+    if (confirm('모든 이력을 삭제하시겠습니까?')) {
+      await clearHistoryFn();
+      showToastFn('모든 이력을 삭제했습니다', 'success');
+      modal.close();
+    }
+  });
+
+  // 외부 클릭 시 닫기
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.close();
+    }
+  });
+}
+
+/**
+ * 타임스탬프 포맷 (예: 2026-02-05 14:30)
+ */
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 /**
@@ -328,7 +389,12 @@ export function updatePreview(frameId, html) {
  * 인라인 코드 표시
  */
 export function displayInlineCode(code) {
-  document.getElementById('inlineCode').textContent = code;
+  const codeElement = document.getElementById('inlineCode');
+  if (code && code.trim()) {
+    codeElement.textContent = code;
+  } else {
+    codeElement.innerHTML = '<div class="empty-state">변환 버튼을 클릭하여 결과를 생성하세요</div>';
+  }
 }
 
 /**

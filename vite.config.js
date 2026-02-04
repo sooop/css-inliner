@@ -17,7 +17,7 @@ export default defineConfig({
     assetsInlineLimit: 100000000,
     chunkSizeWarningLimit: 100000000,
     cssCodeSplit: false,
-    outDir: path.resolve(__dirname, 'dist'),
+    outDir: '../dist',
     emptyOutDir: true,
     rollupOptions: {
       output: {
