@@ -11,7 +11,8 @@ import {
   displayInlineCode,
   showToast,
   initDragDrop,
-  initHistoryModal
+  initHistoryModal,
+  updateCssBadge
 } from './modules/ui-controller.js';
 import { convertToInline, createPreview } from './modules/css-converter.js';
 import {
@@ -38,6 +39,16 @@ initKeyboardShortcuts();
 initDragDrop();
 initHistoryModal(loadHistoryList, loadHistoryItem, deleteHistoryItem, clearHistory, showToast);
 
+// CSS 배지 초기 업데이트
+updateCssBadge();
+
+// 단축키 모달
+const shortcutsModal = document.getElementById('shortcutsModal');
+document.getElementById('shortcutsBtn').addEventListener('click', () => shortcutsModal.showModal());
+document.getElementById('closeShortcutsModal').addEventListener('click', () => shortcutsModal.close());
+document.getElementById('closeShortcutsOkBtn').addEventListener('click', () => shortcutsModal.close());
+shortcutsModal.addEventListener('click', (e) => { if (e.target === shortcutsModal) shortcutsModal.close(); });
+
 // CSS 파일 버튼
 document.getElementById('cssFileBtn').addEventListener('click', () => {
   document.getElementById('cssFile').click();
@@ -50,9 +61,14 @@ document.getElementById('cssFile').addEventListener('change', (e) => {
     handleCSSFileUpload(file, (content) => {
       document.getElementById('cssInput').value = content;
       document.getElementById('useBuiltInCSS').checked = false;
+      updateCssBadge();
     });
   }
 });
+
+// 내장 CSS 체크박스 변경 시 배지 업데이트
+document.getElementById('useBuiltInCSS').addEventListener('change', updateCssBadge);
+document.getElementById('cssInput').addEventListener('input', updateCssBadge);
 
 // 템플릿 CSS 다운로드
 document.getElementById('downloadTemplateBtn').addEventListener('click', () => {
@@ -119,77 +135,97 @@ document.getElementById('copyPreviewBtn').addEventListener('click', () => {
   }
 });
 
+// HTML textarea 에러 상태 해제
+document.getElementById('htmlInput').addEventListener('input', () => {
+  document.getElementById('htmlInput').classList.remove('input-error');
+});
+
 // 변환 버튼
 document.getElementById('convertBtn').addEventListener('click', () => {
   const htmlInput = document.getElementById('htmlInput').value;
-  const userCSS = document.getElementById('cssInput').value;
-  const useBuiltInCSS = document.getElementById('useBuiltInCSS').checked;
+  const htmlTextarea = document.getElementById('htmlInput');
+  const convertBtn = document.getElementById('convertBtn');
 
   if (!htmlInput.trim()) {
-    // 입력이 없으면 결과 클리어
-    updatePreview('previewFrame', '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>');
-    updatePreview('inlinePreviewFrame', '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body></body></html>');
-    displayInlineCode('');
+    showToast('HTML 입력이 필요합니다.', 'error');
+    htmlTextarea.classList.add('input-error');
+    htmlTextarea.focus();
     return;
   }
 
-  // CSS 결합
-  const finalCSS = useBuiltInCSS ? getTemplateCSS() + '\n' + userCSS : userCSS;
+  // 로딩 상태 시작
+  convertBtn.disabled = true;
+  convertBtn.classList.add('loading');
+  convertBtn.textContent = '변환 중...';
 
-  // 스타일 미리보기 생성
-  const previewHTML = createPreview(htmlInput, finalCSS);
-  updatePreview('previewFrame', previewHTML);
-
-  // 인라인 변환
-  const bodyOnly = document.getElementById('bodyOnly').checked;
-  let result = convertToInline(htmlInput, finalCSS, {
-    bodyOnly: bodyOnly || !htmlInput.includes('<html')
-  });
-
-  // 공백 제거
-  if (document.getElementById('removeWhitespace').checked) {
-    result = removeWhitespace(result);
-  }
-
-  // 인라인 미리보기 생성
-  const inlinePreviewHTML = bodyOnly || !htmlInput.includes('<html')
-    ? `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${result}</body></html>`
-    : result;
-  updatePreview('inlinePreviewFrame', inlinePreviewHTML);
-
-  // 인라인 코드 표시
-  displayInlineCode(result);
-
-  // 변환 완료 애니메이션 (오버레이)
-  const paneRight = document.querySelector('.pane-right');
-  const overlay = document.createElement('div');
-  overlay.className = 'success-overlay';
-  overlay.innerHTML = '<div class="success-overlay-icon">✓</div>';
-
-  // pane-right에 position: relative 추가 (CSS에서 처리됨)
-  paneRight.style.position = 'relative';
-  paneRight.appendChild(overlay);
-
+  // 비동기로 처리하여 UI 업데이트가 반영되도록 함
   setTimeout(() => {
-    overlay.remove();
-  }, 800);
+    try {
+      const userCSS = document.getElementById('cssInput').value;
+      const useBuiltInCSS = document.getElementById('useBuiltInCSS').checked;
 
-  // 자동 최대화 옵션 확인
-  const autoMaximize = localStorage.getItem('auto-maximize-result') === 'true';
-  if (autoMaximize) {
-    const paneLeft = document.querySelector('.pane-left');
-    paneLeft.style.flex = '0.1';
-    paneRight.style.flex = '0.9';
-  }
+      // CSS 결합
+      const finalCSS = useBuiltInCSS ? getTemplateCSS() + '\n' + userCSS : userCSS;
 
-  // 이력 저장
-  saveHistory({
-    htmlInput: htmlInput,
-    cssInput: finalCSS,
-    options: {
-      useBuiltInCSS: useBuiltInCSS,
-      bodyOnly: bodyOnly,
-      removeWhitespace: document.getElementById('removeWhitespace').checked
+      // 스타일 미리보기 생성
+      const previewHTML = createPreview(htmlInput, finalCSS);
+      updatePreview('previewFrame', previewHTML);
+
+      // 인라인 변환
+      const bodyOnly = document.getElementById('bodyOnly').checked;
+      let result = convertToInline(htmlInput, finalCSS, {
+        bodyOnly: bodyOnly || !htmlInput.includes('<html')
+      });
+
+      // 공백 제거
+      if (document.getElementById('removeWhitespace').checked) {
+        result = removeWhitespace(result);
+      }
+
+      // 인라인 미리보기 생성
+      const inlinePreviewHTML = bodyOnly || !htmlInput.includes('<html')
+        ? `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>${result}</body></html>`
+        : result;
+      updatePreview('inlinePreviewFrame', inlinePreviewHTML);
+
+      // 인라인 코드 표시
+      displayInlineCode(result);
+
+      // empty state 숨기기
+      document.getElementById('emptyInlinePreview').style.display = 'none';
+      document.getElementById('emptyPreview').style.display = 'none';
+
+      // 변환 완료 애니메이션 (오버레이)
+      const paneRight = document.querySelector('.pane-right');
+      const overlay = document.createElement('div');
+      overlay.className = 'success-overlay';
+      overlay.innerHTML = '<div class="success-overlay-icon">✓</div>';
+      paneRight.appendChild(overlay);
+      setTimeout(() => overlay.remove(), 800);
+
+      // 자동 최대화 옵션 확인
+      const autoMaximize = localStorage.getItem('auto-maximize-result') === 'true';
+      if (autoMaximize) {
+        const paneLeft = document.querySelector('.pane-left');
+        paneLeft.style.flex = '0.1';
+        paneRight.style.flex = '0.9';
+      }
+
+      // 이력 저장
+      saveHistory({
+        htmlInput: htmlInput,
+        cssInput: finalCSS,
+        options: {
+          useBuiltInCSS: useBuiltInCSS,
+          bodyOnly: bodyOnly,
+          removeWhitespace: document.getElementById('removeWhitespace').checked
+        }
+      });
+    } finally {
+      // 로딩 상태 해제
+      convertBtn.disabled = false;
+      convertBtn.classList.remove('loading');
+      convertBtn.textContent = '변환';
     }
-  });
+  }, 0);
 });

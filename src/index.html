@@ -11,6 +11,9 @@
         <header>
             <h1>CSS Inline Converter</h1>
             <div class="header-actions">
+                <button id="shortcutsBtn" class="icon-btn" title="키보드 단축키 (?)">
+                    <span>?</span>
+                </button>
                 <button id="themeToggle" class="icon-btn" title="테마 변경">
                     <span class="theme-icon">🌙</span>
                 </button>
@@ -33,6 +36,7 @@
                 <input type="checkbox" id="useBuiltInCSS" checked>
                 내장 CSS 사용
             </label>
+            <span id="cssBadge" class="css-badge">내장 CSS</span>
         </div>
 
         <div class="split-panes">
@@ -51,37 +55,60 @@
                 </div>
             </div>
 
-            <div class="resizer" title="좌우로 드래그하여 크기 조정"></div>
+            <div class="resizer" title="클릭하여 패널 접기/펼치기">
+                <svg class="resizer-grip" viewBox="0 0 6 24" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="2" cy="6" r="1.2"/><circle cx="2" cy="12" r="1.2"/><circle cx="2" cy="18" r="1.2"/>
+                    <circle cx="5" cy="6" r="1.2"/><circle cx="5" cy="12" r="1.2"/><circle cx="5" cy="18" r="1.2"/>
+                </svg>
+                <svg class="resizer-arrow resizer-arrow-collapse" viewBox="0 0 8 12" xmlns="http://www.w3.org/2000/svg">
+                    <polyline points="6,1 2,6 6,11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg class="resizer-arrow resizer-arrow-expand" viewBox="0 0 8 12" xmlns="http://www.w3.org/2000/svg">
+                    <polyline points="2,1 6,6 2,11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
 
             <div class="pane-right">
                 <div class="output-section">
-                    <div class="tabs">
-                        <button class="tab active" data-tab="inline-preview">인라인 미리보기</button>
-                        <button class="tab" data-tab="preview">스타일 미리보기</button>
-                        <button class="tab" data-tab="code">인라인 코드</button>
+                    <div class="tabs" role="tablist" aria-label="출력 탭">
+                        <button class="tab active" data-tab="inline-preview" role="tab" id="tab-inline-preview" aria-selected="true" aria-controls="inline-preview">인라인 미리보기</button>
+                        <button class="tab" data-tab="preview" role="tab" id="tab-preview" aria-selected="false" aria-controls="preview">스타일 미리보기</button>
+                        <button class="tab" data-tab="code" role="tab" id="tab-code" aria-selected="false" aria-controls="code">인라인 코드</button>
                     </div>
 
-                    <div id="inline-preview" class="tab-content active">
+                    <div id="inline-preview" class="tab-content active" role="tabpanel" aria-labelledby="tab-inline-preview">
                         <div class="panel-header">
                             <span>인라인 미리보기</span>
                             <div class="panel-actions">
                                 <button id="copyInlinePreviewBtn">복사</button>
                             </div>
                         </div>
-                        <iframe id="inlinePreviewFrame" class="preview-frame"></iframe>
+                        <div class="frame-wrapper">
+                            <iframe id="inlinePreviewFrame" class="preview-frame"></iframe>
+                            <div class="tab-empty-state" id="emptyInlinePreview">
+                                <div class="tab-empty-icon">⬡</div>
+                                <p>변환 버튼을 클릭하면<br>인라인 미리보기가 표시됩니다</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="preview" class="tab-content">
+                    <div id="preview" class="tab-content" role="tabpanel" aria-labelledby="tab-preview">
                         <div class="panel-header">
                             <span>스타일 미리보기</span>
                             <div class="panel-actions">
                                 <button id="copyPreviewBtn">복사</button>
                             </div>
                         </div>
-                        <iframe id="previewFrame" class="preview-frame"></iframe>
+                        <div class="frame-wrapper">
+                            <iframe id="previewFrame" class="preview-frame"></iframe>
+                            <div class="tab-empty-state" id="emptyPreview">
+                                <div class="tab-empty-icon">⬡</div>
+                                <p>변환 버튼을 클릭하면<br>스타일 미리보기가 표시됩니다</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="code" class="tab-content">
+                    <div id="code" class="tab-content" role="tabpanel" aria-labelledby="tab-code">
                         <div class="panel-header">
                             <span>인라인 HTML</span>
                             <div class="panel-actions">
@@ -125,6 +152,31 @@
             </div>
             <div class="modal-footer">
                 <button id="clearHistoryBtn">전체 삭제</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="shortcutsModal" class="modal shortcuts-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>키보드 단축키</h2>
+                <button id="closeShortcutsModal" class="close-btn" aria-label="닫기">✕</button>
+            </div>
+            <div class="modal-body shortcuts-body">
+                <table class="shortcuts-table">
+                    <thead>
+                        <tr><th>단축키</th><th>동작</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td><td>변환 실행</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>CSS 입력 열기</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd></td><td>인라인 코드 복사</td></tr>
+                        <tr><td><kbd>?</kbd></td><td>단축키 도움말</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button id="closeShortcutsOkBtn" class="primary">확인</button>
             </div>
         </div>
     </dialog>

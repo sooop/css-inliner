@@ -161,10 +161,15 @@ export async function openHistoryModal(loadHistoryListFn, loadHistoryItemFn, del
   if (items.length === 0) {
     historyList.innerHTML = '<div class="empty-state">이력이 없습니다</div>';
   } else {
-    historyList.innerHTML = items.map(item => `
+    historyList.innerHTML = items.map(item => {
+      const htmlLen = item.htmlInput ? item.htmlInput.length : 0;
+      const sizeLabel = htmlLen > 1024 ? `${(htmlLen / 1024).toFixed(1)}KB` : `${htmlLen}B`;
+      const optionCount = [item.options.useBuiltInCSS, item.options.bodyOnly, item.options.removeWhitespace].filter(Boolean).length;
+      return `
       <div class="history-item" data-id="${item.id}">
         <div class="history-item-header">
           <span class="history-item-time">${formatTimestamp(item.timestamp)}</span>
+          <div class="history-item-meta">${sizeLabel} HTML · 옵션 ${optionCount}개</div>
           <button class="history-item-delete" data-id="${item.id}" onclick="event.stopPropagation()">삭제</button>
         </div>
         <div class="history-item-preview">${item.preview || 'HTML 내용 없음'}</div>
@@ -174,7 +179,7 @@ export async function openHistoryModal(loadHistoryListFn, loadHistoryItemFn, del
           ${item.options.removeWhitespace ? '<span class="history-item-badge">공백 제거</span>' : ''}
         </div>
       </div>
-    `).join('');
+    `}).join('');
 
     // 이력 항목 클릭 이벤트
     historyList.querySelectorAll('.history-item').forEach(item => {
@@ -328,6 +333,15 @@ export function initKeyboardShortcuts() {
       e.preventDefault();
       document.getElementById('copyCodeBtn').click();
     }
+
+    // ?: 단축키 도움말 (textarea/input 포커스 아닐 때)
+    if (e.key === '?' && !e.ctrlKey && !e.altKey) {
+      const tag = document.activeElement.tagName.toLowerCase();
+      if (tag !== 'textarea' && tag !== 'input') {
+        e.preventDefault();
+        document.getElementById('shortcutsModal').showModal();
+      }
+    }
   });
 }
 
@@ -346,11 +360,39 @@ function debounce(fn, delay) {
  * 탭 전환 함수
  */
 function switchTab(tabName) {
-  document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(tab => {
+    const isActive = tab.getAttribute('data-tab') === tabName;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === tabName);
+  });
+}
 
-  document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-  document.getElementById(tabName).classList.add('active');
+/**
+ * CSS 배지 업데이트
+ */
+export function updateCssBadge() {
+  const badge = document.getElementById('cssBadge');
+  if (!badge) return;
+  const useBuiltIn = document.getElementById('useBuiltInCSS').checked;
+  const cssInput = document.getElementById('cssInput').value.trim();
+  const lineCount = cssInput ? cssInput.split('\n').length : 0;
+
+  if (useBuiltIn && !cssInput) {
+    badge.textContent = '내장 CSS';
+    badge.className = 'css-badge css-badge-builtin';
+  } else if (useBuiltIn && cssInput) {
+    badge.textContent = `내장 CSS + 커스텀 (${lineCount}줄)`;
+    badge.className = 'css-badge css-badge-combined';
+  } else if (cssInput) {
+    badge.textContent = `커스텀 CSS (${lineCount}줄)`;
+    badge.className = 'css-badge css-badge-custom';
+  } else {
+    badge.textContent = 'CSS 없음';
+    badge.className = 'css-badge css-badge-none';
+  }
 }
 
 /**
