@@ -94,6 +94,17 @@ function applyComputedStyles(element) {
  */
 export function convertToInline(html, css, options = {}) {
   const { bodyOnly = false } = options;
+
+  // 입력 HTML에서 body 내용만 추출 (완전한 HTML 문서인 경우)
+  let htmlToConvert = html;
+  let shouldReturnBodyOnly = bodyOnly;
+
+  if (html.includes('<body')) {
+    const match = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    htmlToConvert = match ? match[1] : html;
+    shouldReturnBodyOnly = true;
+  }
+
   // 임시 iframe 생성
   const tempFrame = document.createElement('iframe');
   tempFrame.style.display = 'none';
@@ -108,7 +119,7 @@ export function convertToInline(html, css, options = {}) {
       <meta charset="UTF-8">
       <style>${css}</style>
     </head>
-    <body>${html}</body>
+    <body>${htmlToConvert}</body>
     </html>
   `);
   tempDoc.close();
@@ -121,7 +132,7 @@ export function convertToInline(html, css, options = {}) {
 
   // 결과 추출
   let result;
-  if (bodyOnly || !html.includes('<html')) {
+  if (shouldReturnBodyOnly || !html.includes('<html')) {
     result = tempDoc.body.innerHTML;
   } else {
     const serializer = new XMLSerializer();
