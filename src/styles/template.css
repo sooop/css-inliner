@@ -1,372 +1,513 @@
-:root {
-    /* Primary Colors */
-    --primary-main: #121361;
-    --primary-light: oklch(from var(--primary-main) calc(l * 1.5) c h);
-    --primary-dark: oklch(from var(--primary-main) calc(l * 0.8) c h);
-    --primary-contrast: #FFFFFF;
+/* ==========================================================================
+   SmartShip Notice Stylesheet — Structured Authority
+   TracX Logis / tx-html-generator template.css
+   ========================================================================== */
 
-    /* Secondary Colors */
-    --secondary-main: #5988EB;
-    --secondary-light: oklch(from var(--secondary-main) calc(l * 1.5) c h);
-    --secondary-dark: oklch(from var(--secondary-main) calc(l * 0.8) c h);
-    --secondary-contrast: #FFFFFF;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Noto+Sans+KR:wght@300;400;500;600&display=swap');
+
+/* --------------------------------------------------------------------------
+   Design Tokens
+   -------------------------------------------------------------------------- */
+:root {
+    /* Brand */
+    --primary:               #121361;
+    --secondary:             #4A6FA5;
+
+    /* Text */
+    --text-primary:          #1C1C2E;
+    --text-secondary:        #52526A;
+    --text-muted:            #9898B0;
 
     /* Background */
-    --bg-main: #FFFFFF;
-    --bg-elevated: #FAFAFA;
-    --bg-subtle: #F5F5F5;
-
-    /* Text Colors */
-    --text-primary: #38383A;
-    --text-secondary: #5A5A5C;
-    --text-muted: #A9A8AC;
-    --text-disabled: #CCCCCC;
+    --bg:                    #FFFFFF;
+    --bg-subtle:             #F5F5F8;
+    --bg-ink:                #121361;
 
     /* Border */
-    --border-main: #cecece;
-    --border-light: oklch(from var(--border-main) calc(l + 0.1) c h);
-    --border-strong: oklch(from var(--border-main) calc(l - 0.2) c h);
+    --border:                rgba(18, 19, 97, 0.09);
+    --border-strong:         rgba(18, 19, 97, 0.18);
 
-    /* Surface */
-    --surface-table: #EFEFEF;
-    --surface-callout-info: #E8F1FD;
-    --surface-callout-warn: #FFF4F0;
-    --surface-callout-accent: #FFFBEA;
-    --surface-hover: #F9F9F9;
-
-    /* Accent Colors */
-    --accent-warn: #EB6F59;
-    --accent-warn-light: #F08A75;
-    --accent-warn-dark: #D65842;
-
-    --accent-yellow: #EBDA59;
-    --accent-yellow-light: #F0E37B;
-    --accent-yellow-dark: #D6C442;
-
-    /* Spacing */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 2rem;
-    --spacing-2xl: 3rem;
+    /* Callout Semantic Colors */
+    --callout-info-color:    #2E5FA3;
+    --callout-info-bg:       #EEF3FB;
+    --callout-warn-color:    #7A5800;
+    --callout-warn-bg:       #FBF5E6;
+    --callout-danger-color:  #8F2020;
+    --callout-danger-bg:     #FAEDED;
+    --callout-accent-color:  #2E5FA3;
+    --callout-accent-bg:     #EEF3FB;
 
     /* Typography */
-    --font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --font-size-base: 15px;
-    --line-height-base: 1.6;
+    --font:                  'DM Sans', 'Noto Sans KR', sans-serif;
+    --font-size:             14.5px;
+    --lh:                    1.75;
+
+    /* Spacing */
+    --sp-xs:   0.375rem;
+    --sp-sm:   0.625rem;
+    --sp-md:   1.125rem;
+    --sp-lg:   1.875rem;
+    --sp-xl:   2.5rem;
+    --sp-2xl:  4rem;
+
+    /* Legacy aliases */
+    --primary-main:          var(--primary);
+    --secondary-main:        var(--secondary);
+    --text-disabled:         #CCCCCC;
+    --border-main:           rgba(18, 19, 97, 0.15);
+    --surface-hover:         #F0F2F8;
 }
 
-* {
+/* --------------------------------------------------------------------------
+   Reset
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
 body {
-    font-family: var(--font-family);
-    font-size: var(--font-size-base);
-    line-height: var(--line-height-base);
+    font-family: var(--font);
+    font-size: var(--font-size);
+    font-weight: 400;
+    line-height: var(--lh);
     color: var(--text-primary);
-    background-color: var(--bg-main);
+    background-color: var(--bg);
     max-width: 800px;
     margin: 0 auto;
-    padding: var(--spacing-xl);
+    padding: var(--sp-2xl) var(--sp-xl);
+    -webkit-font-smoothing: antialiased;
 }
 
 main {
     max-width: 800px;
 }
 
-/* Header */
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
 header {
-    margin-bottom: var(--spacing-xl);
-    padding-bottom: 0;
-    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sp-2xl);
+    padding-bottom: var(--sp-md);
+    border-bottom: 1px solid var(--border-strong);
 }
 
 .logo {
-    font-weight: bold;
-    color: var(--primary-main);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--primary);
     text-decoration: none;
     display: inline-block;
 }
 
-/* Typography */
-h1 {
-    font-size: 1.749rem;
-    color: var(--primary-main);
-    font-weight: 700;
-    margin-bottom: var(--spacing-lg);
-    line-height: 1.2;
+.doc-type {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
 }
 
+/* --------------------------------------------------------------------------
+   Typography
+   -------------------------------------------------------------------------- */
+h1 {
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+    font-weight: 600;
+    color: var(--primary);
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    margin-bottom: var(--sp-sm);
+}
+
+.doc-meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: var(--sp-lg);
+    letter-spacing: 0.01em;
+}
+
+/* 섹션 구분 — 상단 accent bar로 존재감 확보 */
 h2 {
-    font-size: 1.275rem;
-    color: var(--primary-main);
-    font-weight: 700;
-    margin-top: var(--spacing-xl);
-    margin-bottom: var(--spacing-md);
+    font-size: 1.0rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-top: var(--sp-2xl);
+    margin-bottom: var(--sp-md);
+    padding-top: var(--sp-sm);
+    border-top: 1px solid var(--border-strong);
     line-height: 1.3;
 }
 
 h3 {
-    font-size: 1.14rem;
-    color: var(--text-primary);
+    font-size: 1.15rem;
     font-weight: 600;
-    margin-top: var(--spacing-lg);
-    margin-bottom: var(--spacing-sm);
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-top: var(--sp-lg);
+    margin-bottom: var(--sp-xs);
     line-height: 1.4;
 }
 
 p {
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--sp-md);
     color: var(--text-primary);
 }
 
-/* Links */
+/* --------------------------------------------------------------------------
+   Links
+   -------------------------------------------------------------------------- */
 a {
-    color: var(--secondary-main);
+    color: var(--secondary);
     text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 8px;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
 }
 
 a:hover {
-    color: var(--secondary-dark);
+    color: var(--primary);
 }
 
-/* Button Links */
-.btn {
-    display: inline-block;
-    padding: 12px 24px;
-    margin: var(--spacing-xs);
-    border-radius: 4px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-    align-items: center;
-}
-
-.btn-group .btn {
-    margin: 0;
-    flex: 0 1 auto;
-}
-
-.btn-primary {
-    background-color: var(--primary-main);
-    color: var(--primary-contrast);
-    text-decoration: none;
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-dark);
-    color: var(--primary-contrast);
-}
-
-.btn-secondary {
-    background-color: var(--secondary-main);
-    color: var(--secondary-contrast);
-    text-decoration: none;
-}
-
-.btn-secondary:hover {
-    background-color: var(--secondary-dark);
-    color: var(--secondary-contrast);
-}
-
-.btn-warn {
-    background-color: var(--accent-warn);
-    color: white;
-    text-decoration: none;
-}
-
-.btn-warn:hover {
-    background-color: var(--accent-warn-dark);
-    color: white;
-}
-
-.btn-outline {
-    background-color: transparent;
-    color: var(--secondary-main);
-    border: 2px solid var(--secondary-main);
-    text-decoration: none;
-}
-
-.btn-outline:hover {
-    background-color: var(--secondary-main);
-    color: white;
-}
-
-/* Lists */
+/* --------------------------------------------------------------------------
+   Lists
+   -------------------------------------------------------------------------- */
 ul, ol {
-    margin-bottom: var(--spacing-md);
-    padding-left: var(--spacing-xl);
+    padding-left: var(--sp-lg);
+    margin-bottom: var(--sp-md);
 }
 
 li {
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--sp-xs);
     color: var(--text-primary);
 }
 
 ul ul, ul ol, ol ul, ol ol {
-    margin-top: var(--spacing-sm);
+    margin-top: var(--sp-xs);
     margin-bottom: 0;
 }
 
-/* Callouts */
+/* --------------------------------------------------------------------------
+   Callouts
+   -------------------------------------------------------------------------- */
 .callout {
-    margin: var(--spacing-lg) 0;
-    border: 1px solid var(--border-main);
-    border-left: 4px solid;
-    font-size: 0.9rem;
+    margin: var(--sp-lg) 0;
+    padding: 0;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-size: 0.875rem;
     overflow: hidden;
-
 }
 
+/* 타이틀 바 */
 .callout h3 {
     margin: 0;
-    padding: var(--spacing-sm) var(--spacing-sm);
-    font-size: 0.87rem;
+    padding: var(--sp-sm) var(--sp-md);
+    font-size: 0.78rem;
     font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--text-secondary);
+    line-height: 1.5;
 }
 
 .callout p,
 .callout ul,
-.callout ol,
-.callout table {
+.callout ol {
     margin: 0;
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--sp-sm) var(--sp-md) var(--sp-md);
+    color: var(--text-secondary);
 }
 
 .callout p:not(:last-child),
 .callout ul:not(:last-child),
-.callout ol:not(:last-child),
-.callout table:not(:last-child) {
+.callout ol:not(:last-child) {
     margin-bottom: 0;
 }
 
-.callout-info {
-    border-color: var(--secondary-main);
+.callout-label {
+    display: block;
+    padding: var(--sp-sm) var(--sp-md);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--text-secondary);
 }
 
-.callout-info h3 {
-    background-color: #C5D9F5;
-    color: var(--text-primary);
+/* Callout Variants */
+.callout-info {
+    border-color: var(--callout-info-color);
+    background: var(--callout-info-bg);
+}
+.callout-info h3,
+.callout-info .callout-label {
+    background: var(--callout-info-color);
+    color: #fff;
 }
 
 .callout-warn {
-    border-color: var(--accent-warn);
+    border-color: var(--callout-warn-color);
+    background: var(--callout-warn-bg);
+}
+.callout-warn h3,
+.callout-warn .callout-label {
+    background: var(--callout-warn-color);
+    color: #fff;
 }
 
-.callout-warn h3 {
-    background-color: #F5C9C0;
-    color: var(--text-primary);
+.callout-danger {
+    border-color: var(--callout-danger-color);
+    background: var(--callout-danger-bg);
+}
+.callout-danger h3,
+.callout-danger .callout-label {
+    background: var(--callout-danger-color);
+    color: #fff;
 }
 
 .callout-accent {
-    border-color: var(--accent-yellow);
+    border-color: var(--callout-accent-color);
+    background: var(--callout-accent-bg);
+}
+.callout-accent h3,
+.callout-accent .callout-label {
+    background: var(--callout-accent-color);
+    color: #fff;
 }
 
-.callout-accent h3 {
-    background-color: #F5ECBA;
-    color: var(--text-primary);
-}
-
-/* Tables */
+/* --------------------------------------------------------------------------
+   Tables
+   -------------------------------------------------------------------------- */
 table {
     width: 100%;
-    border-collapse: collapse;
-    margin: var(--spacing-lg) 0;
-    border-top: 3px solid var(--secondary-main);
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: var(--sp-md) 0 var(--sp-lg);
+    font-size: 0.875rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-th, td {
-    padding: 9px 12px;
-    text-align: left;
-    border: 1px solid var(--border-main);
+/* 가로형: dark header */
+thead tr {
+    background: var(--bg-ink);
 }
 
 th {
-    background-color: var(--surface-table);
-    font-weight: 600;
+    padding: var(--sp-sm) var(--sp-md);
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.75);
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* 가로형 thead 모서리 */
+thead th:first-child { border-radius: 7px 0 0 0; }
+thead th:last-child  { border-radius: 0 7px 0 0; }
+
+td {
+    padding: var(--sp-sm) var(--sp-md);
     color: var(--text-primary);
+    vertical-align: top;
+    border: none;
+    border-bottom: 1px solid var(--border);
 }
 
-tr:hover {
-    background-color: var(--surface-hover);
+tbody tr:last-child td {
+    border-bottom: none;
 }
 
-/* Vertical Table */
+tbody tr:hover td {
+    background: var(--surface-hover);
+}
+
+/* 세로형 테이블 */
+.table-vertical {
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
 .table-vertical th {
-    width: 30%;
-    background-color: var(--surface-table);
+    width: 32%;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border-strong);
 }
 
-/* Responsive Table (for wide tables) */
+.table-vertical td {
+    border-bottom: 1px solid var(--border);
+}
+
+.table-vertical tr:last-child th,
+.table-vertical tr:last-child td {
+    border-bottom: none;
+}
+
+/* 세로형 첫 번째 행 모서리 */
+.table-vertical tr:first-child th { border-radius: 7px 0 0 0; }
+.table-vertical tr:first-child td { border-radius: 0 7px 0 0; }
+
+/* 세로형 마지막 행 모서리 */
+.table-vertical tr:last-child th  { border-radius: 0 0 0 7px; }
+.table-vertical tr:last-child td  { border-radius: 0 0 7px 0; }
+
+/* 반응형 */
 .table-responsive {
     overflow-x: auto;
-    margin: var(--spacing-lg) 0;
+    margin: var(--sp-lg) 0;
 }
 
 @media (max-width: 768px) {
-    .table-horizontal {
-        font-size: 14px;
-    }
-
     .table-horizontal th,
     .table-horizontal td {
         padding: 8px;
+        font-size: 0.85rem;
     }
 }
 
-/* Blockquote */
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-sm);
+    margin: var(--sp-lg) 0;
+    align-items: center;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 22px;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    flex: 0 1 auto;
+    border-radius: 0;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+.btn-primary:hover {
+    background: #0D0E49;
+    border-color: #0D0E49;
+    color: #fff;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    border-color: var(--primary);
+}
+.btn-secondary:hover {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+.btn-outline:hover {
+    background: var(--secondary);
+    color: #fff;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-strong);
+}
+.btn-ghost:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+.btn-warn {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-strong);
+}
+.btn-warn:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Blockquote
+   -------------------------------------------------------------------------- */
 blockquote {
-    margin: var(--spacing-md) 0;
-    padding: var(--spacing-md) var(--spacing-lg);
-    border-left: 4px solid var(--border-main);
+    margin: var(--sp-md) 0;
+    padding: var(--sp-md) var(--sp-lg);
+    border-left: 3px solid var(--primary);
     background-color: var(--bg-subtle);
     font-style: italic;
     color: var(--text-secondary);
-    margin-left: var(--spacing-lg);
-    margin-right: var(--spacing-lg);
 }
 
 blockquote p:last-child {
     margin-bottom: 0;
 }
 
-/* Footer */
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
 footer {
-    margin-top: var(--spacing-2xl);
-    padding-top: var(--spacing-sm);
-    border-top: 1px solid var(--border-light);
-    text-align: center;
+    margin-top: var(--sp-2xl);
+    padding-top: var(--sp-md);
+    border-top: 1px solid var(--border-strong);
     color: var(--text-muted);
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 400;
+    letter-spacing: 0.05em;
+    line-height: 1.7;
 }
 
-/* Utility Classes */
-.text-muted {
-    color: var(--text-muted);
-}
+/* --------------------------------------------------------------------------
+   Utility
+   -------------------------------------------------------------------------- */
+.text-muted { color: var(--text-muted); }
 
-.mb-0 { margin-bottom: 0; }
-.mb-sm { margin-bottom: var(--spacing-sm); }
-.mb-md { margin-bottom: var(--spacing-md); }
-.mb-lg { margin-bottom: var(--spacing-lg); }
+.mb-0  { margin-bottom: 0; }
+.mb-sm { margin-bottom: var(--sp-sm); }
+.mb-md { margin-bottom: var(--sp-md); }
+.mb-lg { margin-bottom: var(--sp-lg); }
 
-.mt-0 { margin-top: 0; }
-.mt-sm { margin-top: var(--spacing-sm); }
-.mt-md { margin-top: var(--spacing-md); }
-.mt-lg { margin-top: var(--spacing-lg); }
+.mt-0  { margin-top: 0; }
+.mt-sm { margin-top: var(--sp-sm); }
+.mt-md { margin-top: var(--sp-md); }
+.mt-lg { margin-top: var(--sp-lg); }

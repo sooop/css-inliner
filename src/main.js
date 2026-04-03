@@ -34,7 +34,7 @@ initUIController();
 initTheme();
 initResizer();
 initModal();
-initAutoSave();
+initAutoSave(getTemplateCSS());
 initKeyboardShortcuts();
 initDragDrop();
 initHistoryModal(loadHistoryList, loadHistoryItem, deleteHistoryItem, clearHistory, showToast);

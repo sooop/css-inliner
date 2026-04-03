@@ -268,7 +268,7 @@ function formatTimestamp(timestamp) {
 /**
  * 자동 저장 초기화
  */
-export function initAutoSave() {
+export function initAutoSave(defaultCSS = '') {
   const htmlInput = document.getElementById('htmlInput');
   const cssInput = document.getElementById('cssInput');
   const useBuiltInCSS = document.getElementById('useBuiltInCSS');
@@ -282,6 +282,7 @@ export function initAutoSave() {
 
   if (savedHTML) htmlInput.value = savedHTML;
   if (savedCSS) cssInput.value = savedCSS;
+  else if (defaultCSS) cssInput.value = defaultCSS;
   if (savedCheckbox !== null) useBuiltInCSS.checked = savedCheckbox === 'true';
   if (savedAutoConvert !== null) autoConvert.checked = savedAutoConvert === 'true';
 
