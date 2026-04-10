@@ -103,7 +103,6 @@ header {
     font-size: 0.8rem;
     font-weight: 500;
     letter-spacing: 0.12em;
-    text-transform: uppercase;
     color: var(--primary);
     text-decoration: none;
     display: inline-block;
@@ -113,7 +112,6 @@ header {
     font-size: 0.72rem;
     color: var(--text-muted);
     letter-spacing: 0.1em;
-    text-transform: uppercase;
     font-weight: 500;
 }
 
@@ -141,7 +139,6 @@ h2 {
     font-size: 1.0rem;
     font-weight: 600;
     letter-spacing: 0.02em;
-    text-transform: uppercase;
     color: var(--primary);
     margin-top: var(--sp-2xl);
     margin-bottom: var(--sp-md);
@@ -217,7 +214,6 @@ ul ul, ul ol, ol ul, ol ol {
     font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
     color: #fff;
     background: var(--text-secondary);
     line-height: 1.5;
@@ -243,7 +239,6 @@ ul ul, ul ol, ol ul, ol ol {
     font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
     color: #fff;
     background: var(--text-secondary);
 }
@@ -314,7 +309,6 @@ th {
     font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.07em;
-    text-transform: uppercase;
     color: rgba(255, 255, 255, 0.75);
     border: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
@@ -353,7 +347,6 @@ tbody tr:hover td {
     font-size: 0.78rem;
     font-weight: 500;
     letter-spacing: 0.03em;
-    text-transform: none;
     background: var(--bg-subtle);
     border-bottom: 1px solid var(--border);
     border-right: 1px solid var(--border-strong);
