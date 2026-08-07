@@ -48,6 +48,10 @@
                             <label><input type="checkbox" id="autoConvert"> 자동변환</label>
                             <label><input type="checkbox" id="removeWhitespace"> 공백 제거</label>
                             <label><input type="checkbox" id="bodyOnly"> Body Only</label>
+                            <div class="profile-toggle" id="profileToggle" role="group" aria-label="출력 대상">
+                                <button type="button" class="profile-btn active" data-profile="email" title="전 속성 인라인 — 메일 클라이언트용">이메일</button>
+                                <button type="button" class="profile-btn" data-profile="web" title="font-family만 제외 — Next.js/Tailwind/shadcn 호스트에 삽입용">웹</button>
+                            </div>
                             <button class="primary" id="convertBtn">변환</button>
                         </div>
                     </div>

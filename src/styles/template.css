@@ -9,53 +9,72 @@
    Design Tokens
    -------------------------------------------------------------------------- */
 :root {
-    /* Brand */
-    --primary:               #121361;
-    --secondary:             #4A6FA5;
+    /* Brand — Nordic Frost */
+    --primary:               #2B4C6F;
+    --secondary:             #5B84A6;
 
     /* Text */
-    --text-primary:          #1C1C2E;
-    --text-secondary:        #52526A;
-    --text-muted:            #9898B0;
+    --text-primary:          #22303D;
+    --text-secondary:        #455562;
+    --text-muted:            #7C8E9A;
 
     /* Background */
     --bg:                    #FFFFFF;
-    --bg-subtle:             #F5F5F8;
-    --bg-ink:                #121361;
+    --bg-subtle:             #F8F9FA;
+    --bg-ink:                #2B4C6F;
 
     /* Border */
-    --border:                rgba(18, 19, 97, 0.09);
-    --border-strong:         rgba(18, 19, 97, 0.18);
+    --border:                rgba(43, 76, 111, 0.041);
+    --border-strong:         rgba(43, 76, 111, 0.083);
 
     /* Callout Semantic Colors */
-    --callout-info-color:    #2E5FA3;
-    --callout-info-bg:       #EEF3FB;
-    --callout-warn-color:    #7A5800;
-    --callout-warn-bg:       #FBF5E6;
-    --callout-danger-color:  #8F2020;
-    --callout-danger-bg:     #FAEDED;
-    --callout-accent-color:  #2E5FA3;
-    --callout-accent-bg:     #EEF3FB;
+    --callout-info-color:    #368EED;
+    --callout-info-bg:       #DBE3EB;
+    --callout-warn-color:    #F57A00;
+    --callout-warn-bg:       #F1E9E2;
+    --callout-danger-color:  #EE2607;
+    --callout-danger-bg:     #F5ECEB;
+    --callout-accent-color:  #28AE6B;
+    --callout-accent-bg:     #ECF3F0;
+
+    /* Callout title/label text color — 배경색 대비 흰 글자보다 어두운 글자가
+       더 잘 읽히는 변형(밝은 호박색·초록 계열)만 따로 지정 */
+    --callout-info-label:    #1A1A1A;
+    --callout-warn-label:    #1A1A1A;
+    --callout-danger-label:  #fff;
+    --callout-accent-label:  #1A1A1A;
 
     /* Typography */
     --font:                  'DM Sans', 'Noto Sans KR', sans-serif;
-    --font-size:             14.5px;
+    --font-size:             14px;
     --lh:                    1.75;
 
+    /* Heading scale — 이메일 기본값. 웹 프로파일에서는
+       template-manager.js의 getWebOverridesCSS()가 더 작은 값으로 덮어쓴다 */
+    --h1-size:               clamp(1.75rem, 3.5vw, 2.25rem);
+    --h2-size:               1rem;
+    --h3-size:               1.15rem;
+
+    /* Table header tint (표 헤더: 프라이머리 틴트 배경 + 프라이머리 글자) */
+    --th-tint-bg:            rgba(43, 76, 111, 0.06);
+
+    /* Radius */
+    --radius:                5px;
+
     /* Spacing */
-    --sp-xs:   0.375rem;
-    --sp-sm:   0.625rem;
-    --sp-md:   1.125rem;
-    --sp-lg:   1.875rem;
-    --sp-xl:   2.5rem;
-    --sp-2xl:  4rem;
+    --sp-xs:   0.360rem;
+    --sp-sm:   0.600rem;
+    --sp-md:   1.080rem;
+    --sp-lg:   1.800rem;
+    --sp-xl:   2.400rem;
+    --sp-2xl:  3.840rem;
 
     /* Legacy aliases */
     --primary-main:          var(--primary);
     --secondary-main:        var(--secondary);
     --text-disabled:         #CCCCCC;
-    --border-main:           rgba(18, 19, 97, 0.15);
-    --surface-hover:         #F0F2F8;
+    --border-main:           rgba(43, 76, 111, 0.15);
+    --surface-hover:         #F2F4F6;
 }
 
 /* --------------------------------------------------------------------------
@@ -121,7 +140,7 @@ header {
    Typography
    -------------------------------------------------------------------------- */
 h1 {
-    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+    font-size: var(--h1-size);
     font-weight: 600;
     color: var(--primary);
     line-height: 1.15;
@@ -138,7 +157,7 @@ h1 {
 
 /* 섹션 구분 — 상단 accent bar로 존재감 확보 */
 h2 {
-    font-size: 1.0rem;
+    font-size: var(--h2-size);
     font-weight: 600;
     letter-spacing: 0.02em;
     text-transform: uppercase;
@@ -151,7 +170,7 @@ h2 {
 }
 
 h3 {
-    font-size: 1.15rem;
+    font-size: var(--h3-size);
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.01em;
@@ -205,7 +224,7 @@ ul ul, ul ol, ol ul, ol ol {
     padding: 0;
     background: var(--bg-subtle);
     border: 1px solid var(--border-strong);
-    border-radius: 6px;
+    border-radius: var(--radius);
     font-size: 0.875rem;
     overflow: hidden;
 }
@@ -256,7 +275,7 @@ ul ul, ul ol, ol ul, ol ol {
 .callout-info h3,
 .callout-info .callout-label {
     background: var(--callout-info-color);
-    color: #fff;
+    color: var(--callout-info-label);
 }
 
 .callout-warn {
@@ -266,7 +285,7 @@ ul ul, ul ol, ol ul, ol ol {
 .callout-warn h3,
 .callout-warn .callout-label {
     background: var(--callout-warn-color);
-    color: #fff;
+    color: var(--callout-warn-label);
 }
 
 .callout-danger {
@@ -276,7 +295,7 @@ ul ul, ul ol, ol ul, ol ol {
 .callout-danger h3,
 .callout-danger .callout-label {
     background: var(--callout-danger-color);
-    color: #fff;
+    color: var(--callout-danger-label);
 }
 
 .callout-accent {
@@ -286,7 +305,7 @@ ul ul, ul ol, ol ul, ol ol {
 .callout-accent h3,
 .callout-accent .callout-label {
     background: var(--callout-accent-color);
-    color: #fff;
+    color: var(--callout-accent-label);
 }
 
 /* --------------------------------------------------------------------------
@@ -299,13 +318,13 @@ table {
     margin: var(--sp-md) 0 var(--sp-lg);
     font-size: 0.875rem;
     border: 1px solid var(--border-strong);
-    border-radius: 8px;
+    border-radius: var(--radius);
     overflow: hidden;
 }
 
-/* 가로형: dark header */
+/* 가로형: 프라이머리 틴트 헤더 */
 thead tr {
-    background: var(--bg-ink);
+    background: var(--th-tint-bg);
 }
 
 th {
@@ -315,14 +334,14 @@ th {
     font-weight: 500;
     letter-spacing: 0.07em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--primary);
     border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid var(--border-strong);
 }
 
 /* 가로형 thead 모서리 */
-thead th:first-child { border-radius: 7px 0 0 0; }
-thead th:last-child  { border-radius: 0 7px 0 0; }
+thead th:first-child { border-radius: calc(var(--radius) - 1px) 0 0 0; }
+thead th:last-child  { border-radius: 0 calc(var(--radius) - 1px) 0 0; }
 
 td {
     padding: var(--sp-sm) var(--sp-md);
@@ -343,7 +362,7 @@ tbody tr:hover td {
 /* 세로형 테이블 */
 .table-vertical {
     border: 1px solid var(--border-strong);
-    border-radius: 8px;
+    border-radius: var(--radius);
     overflow: hidden;
 }
 
@@ -369,12 +388,12 @@ tbody tr:hover td {
 }
 
 /* 세로형 첫 번째 행 모서리 */
-.table-vertical tr:first-child th { border-radius: 7px 0 0 0; }
-.table-vertical tr:first-child td { border-radius: 0 7px 0 0; }
+.table-vertical tr:first-child th { border-radius: calc(var(--radius) - 1px) 0 0 0; }
+.table-vertical tr:first-child td { border-radius: 0 calc(var(--radius) - 1px) 0 0; }
 
 /* 세로형 마지막 행 모서리 */
-.table-vertical tr:last-child th  { border-radius: 0 0 0 7px; }
-.table-vertical tr:last-child td  { border-radius: 0 0 7px 0; }
+.table-vertical tr:last-child th  { border-radius: 0 0 0 calc(var(--radius) - 1px); }
+.table-vertical tr:last-child td  { border-radius: 0 0 calc(var(--radius) - 1px) 0; }
 
 /* 반응형 */
 .table-responsive {
@@ -422,8 +441,8 @@ tbody tr:hover td {
     border-color: var(--primary);
 }
 .btn-primary:hover {
-    background: #0D0E49;
-    border-color: #0D0E49;
+    background: #1F3A56;
+    border-color: #1F3A56;
     color: #fff;
 }
 

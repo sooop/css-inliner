@@ -62,16 +62,35 @@ const PROPERTIES_TO_INLINE = [
 ];
 
 /**
+ * 출력 프로파일별로 인라인 대상에서 제외할 속성.
+ * web: Next.js/Tailwind/shadcn 같은 호스트 프로젝트에 삽입할 때, 폰트만
+ * 호스트 값을 상속받도록 font-family를 뺀다. font-size/line-height/color는
+ * 헤딩 위계와 버튼·콜아웃 라벨의 흰 글자 가독성이 인라인 style 하나에만
+ * 의존하므로(외부 스타일시트 없이 붙여넣는 용도라) 유지한다.
+ */
+const PROFILE_EXCLUDED_PROPERTIES = {
+  email: [],
+  web: ['font-family']
+};
+
+function getInlineProperties(profile) {
+  const excluded = PROFILE_EXCLUDED_PROPERTIES[profile] || PROFILE_EXCLUDED_PROPERTIES.email;
+  return excluded.length
+    ? PROPERTIES_TO_INLINE.filter((prop) => !excluded.includes(prop))
+    : PROPERTIES_TO_INLINE;
+}
+
+/**
  * 요소와 그 자식들에 계산된 스타일을 인라인으로 적용
  */
-function applyComputedStyles(element) {
+function applyComputedStyles(element, properties) {
   if (element.nodeType !== 1) return;
 
   const elementWindow = element.ownerDocument.defaultView;
   const computed = elementWindow.getComputedStyle(element);
   let inlineStyle = '';
 
-  for (let prop of PROPERTIES_TO_INLINE) {
+  for (let prop of properties) {
     const value = computed.getPropertyValue(prop);
 
     if (shouldIncludeProperty(prop, value)) {
@@ -85,7 +104,7 @@ function applyComputedStyles(element) {
 
   // 자식 요소들에 재귀적으로 적용
   for (let child of element.children) {
-    applyComputedStyles(child);
+    applyComputedStyles(child, properties);
   }
 }
 
@@ -93,7 +112,8 @@ function applyComputedStyles(element) {
  * HTML과 CSS를 받아서 인라인 스타일이 적용된 HTML 반환
  */
 export function convertToInline(html, css, options = {}) {
-  const { bodyOnly = false } = options;
+  const { bodyOnly = false, profile = 'email' } = options;
+  const properties = getInlineProperties(profile);
 
   // 입력 HTML에서 body 내용만 추출 (완전한 HTML 문서인 경우)
   let htmlToConvert = html;
@@ -128,7 +148,7 @@ export function convertToInline(html, css, options = {}) {
   tempDoc.body.offsetHeight;
 
   // 인라인 스타일 적용
-  applyComputedStyles(tempDoc.body);
+  applyComputedStyles(tempDoc.body, properties);
 
   // 결과 추출
   let result;

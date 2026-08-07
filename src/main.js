@@ -17,6 +17,7 @@ import {
 import { convertToInline, createPreview } from './modules/css-converter.js';
 import {
   getTemplateCSS,
+  getWebOverridesCSS,
   downloadTemplateCSS,
   copyTemplateCSS
 } from './modules/template-manager.js';
@@ -34,13 +35,24 @@ initUIController();
 initTheme();
 initResizer();
 initModal();
-initAutoSave(getTemplateCSS());
+initAutoSave();
 initKeyboardShortcuts();
 initDragDrop();
 initHistoryModal(loadHistoryList, loadHistoryItem, deleteHistoryItem, clearHistory, showToast);
 
 // CSS 배지 초기 업데이트
 updateCssBadge();
+
+// 출력 프로파일 (이메일 / 웹) 토글
+let outputProfile = 'email';
+document.getElementById('profileToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('.profile-btn');
+  if (!btn) return;
+  outputProfile = btn.getAttribute('data-profile');
+  document.querySelectorAll('.profile-btn').forEach((b) => {
+    b.classList.toggle('active', b === btn);
+  });
+});
 
 // 단축키 모달
 const shortcutsModal = document.getElementById('shortcutsModal');
@@ -164,8 +176,9 @@ document.getElementById('convertBtn').addEventListener('click', () => {
       const userCSS = document.getElementById('cssInput').value;
       const useBuiltInCSS = document.getElementById('useBuiltInCSS').checked;
 
-      // CSS 결합
-      const finalCSS = useBuiltInCSS ? getTemplateCSS() + '\n' + userCSS : userCSS;
+      // CSS 결합 (웹 프로파일은 제목 크기 오버라이드를 템플릿 뒤에 덧붙임)
+      const webOverrides = outputProfile === 'web' ? '\n' + getWebOverridesCSS() : '';
+      const finalCSS = useBuiltInCSS ? getTemplateCSS() + webOverrides + '\n' + userCSS : userCSS;
 
       // 스타일 미리보기 생성
       const previewHTML = createPreview(htmlInput, finalCSS);
@@ -174,7 +187,8 @@ document.getElementById('convertBtn').addEventListener('click', () => {
       // 인라인 변환
       const bodyOnly = document.getElementById('bodyOnly').checked;
       let result = convertToInline(htmlInput, finalCSS, {
-        bodyOnly: bodyOnly || !htmlInput.includes('<html')
+        bodyOnly: bodyOnly || !htmlInput.includes('<html'),
+        profile: outputProfile
       });
 
       // 공백 제거
@@ -218,7 +232,8 @@ document.getElementById('convertBtn').addEventListener('click', () => {
         options: {
           useBuiltInCSS: useBuiltInCSS,
           bodyOnly: bodyOnly,
-          removeWhitespace: document.getElementById('removeWhitespace').checked
+          removeWhitespace: document.getElementById('removeWhitespace').checked,
+          profile: outputProfile
         }
       });
     } finally {
