@@ -48,8 +48,15 @@
                             <label><input type="checkbox" id="autoConvert"> 자동변환</label>
                             <label><input type="checkbox" id="removeWhitespace"> 공백 제거</label>
                             <label><input type="checkbox" id="bodyOnly"> Body Only</label>
+                            <label title="body에 걸린 폭 제한·바깥 여백·배경을 래퍼로 옮겨 보존합니다"><input type="checkbox" id="wrapBody" checked> 본문 래퍼</label>
+                            <label title="flex/grid를 block 기반으로 낮추고 애니메이션 속성을 제거합니다 — Outlook 데스크톱 대응"><input type="checkbox" id="mailSafeLayout"> 메일 호환 레이아웃</label>
+                            <label class="width-field" title="변환 시 실제로 렌더링할 폭. 미디어쿼리 평가 기준이며 미리보기도 같은 폭으로 표시됩니다">
+                                폭
+                                <input type="number" id="renderWidth" min="320" max="1600" step="20" value="1000">
+                                px
+                            </label>
                             <div class="profile-toggle" id="profileToggle" role="group" aria-label="출력 대상">
-                                <button type="button" class="profile-btn active" data-profile="email" title="전 속성 인라인 — 메일 클라이언트용">이메일</button>
+                                <button type="button" class="profile-btn active" data-profile="email" title="메일 클라이언트용 — 상속 속성 보강, 애니메이션 제거">이메일</button>
                                 <button type="button" class="profile-btn" data-profile="web" title="font-family만 제외 — Next.js/Tailwind/shadcn 호스트에 삽입용">웹</button>
                             </div>
                             <button class="primary" id="convertBtn">변환</button>
@@ -74,6 +81,7 @@
 
             <div class="pane-right">
                 <div class="output-section">
+                    <div id="warningBanner" class="warning-banner" role="status" aria-live="polite" hidden></div>
                     <div class="tabs" role="tablist" aria-label="출력 탭">
                         <button class="tab active" data-tab="inline-preview" role="tab" id="tab-inline-preview" aria-selected="true" aria-controls="inline-preview">인라인 미리보기</button>
                         <button class="tab" data-tab="preview" role="tab" id="tab-preview" aria-selected="false" aria-controls="preview">스타일 미리보기</button>

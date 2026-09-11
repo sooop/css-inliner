@@ -88,7 +88,11 @@
   options: {
     useBuiltInCSS: boolean,
     bodyOnly: boolean,
-    removeWhitespace: boolean
+    removeWhitespace: boolean,
+    profile: 'email' | 'web',
+    renderWidth: number,
+    wrapBody: boolean,
+    mailSafeLayout: boolean
   },
   preview: string (첫 100자)
 }

@@ -242,10 +242,31 @@ input[type="file"] {
     font-size: 12px;
 }
 
+.panel-header > span {
+    white-space: nowrap;
+}
+
 .panel-header-actions {
     display: flex;
     gap: var(--sp-3);
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.panel-header-actions label {
+    white-space: nowrap;
+}
+
+.panel-header-actions .width-field input {
+    width: 58px;
+    padding: 2px 4px;
+    font-size: var(--text-xs);
+    text-align: right;
+    color: var(--text-primary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
 }
 
 .panel-header-actions label {
@@ -441,6 +462,48 @@ textarea {
     overflow: hidden;
 }
 
+/* 변환 경고 배너 */
+.warning-banner {
+    padding: var(--sp-2) var(--sp-4);
+    background: var(--info-muted);
+    border-bottom: 1px solid var(--border);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.warning-banner.has-warning {
+    background: var(--accent-muted);
+}
+
+.warning-banner summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-primary);
+    list-style-position: inside;
+}
+
+.warning-banner ul {
+    margin: var(--sp-2) 0 0;
+    padding-left: var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+}
+
+.warning-banner li {
+    line-height: 1.6;
+}
+
+.warning-banner li.warning-warn {
+    color: var(--error);
+}
+
+.warning-banner li.warning-info {
+    color: var(--text-secondary);
+}
+
 pre {
     margin: 0;
     padding: 16px;
@@ -597,6 +660,11 @@ dialog::backdrop {
     flex-direction: column;
 }
 
+.pane-right .warning-banner,
+.pane-right .tabs {
+    flex: none;
+}
+
 .pane-left.collapsed {
     flex: 0 !important;
     min-width: 0;
@@ -635,7 +703,9 @@ dialog::backdrop {
 .tab-content {
     display: none;
     flex-direction: column;
-    height: 100%;
+    /* 경고 배너·탭 막대가 자리를 차지하므로 남은 높이만 채운다 */
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .tab-content.active {

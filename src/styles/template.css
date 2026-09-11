@@ -394,13 +394,9 @@ tbody tr:hover td {
     margin: var(--sp-lg) 0;
 }
 
-@media (max-width: 768px) {
-    .table-horizontal th,
-    .table-horizontal td {
-        padding: 8px;
-        font-size: 0.85rem;
-    }
-}
+/* 미디어쿼리는 두지 않는다 — 이 템플릿의 산출물은 항상 인라인 스타일이고,
+   인라인에는 미디어쿼리를 담을 수 없어 렌더 폭에 따라 결과만 달라진다.
+   표는 width 백분율과 .table-responsive(가로 스크롤)로 폭에 대응한다. */
 
 /* --------------------------------------------------------------------------
    Buttons

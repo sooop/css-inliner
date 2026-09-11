@@ -195,6 +195,27 @@ export async function openHistoryModal(loadHistoryListFn, loadHistoryItemFn, del
           document.getElementById('bodyOnly').checked = historyItem.options.bodyOnly;
           document.getElementById('removeWhitespace').checked = historyItem.options.removeWhitespace;
 
+          // 변환 조건(폭·래퍼·호환 모드)까지 복원해야 같은 결과가 재현된다
+          const options = historyItem.options;
+          if (options.wrapBody !== undefined) {
+            document.getElementById('wrapBody').checked = options.wrapBody;
+            localStorage.setItem('wrap-body', options.wrapBody);
+          }
+          if (options.mailSafeLayout !== undefined) {
+            document.getElementById('mailSafeLayout').checked = options.mailSafeLayout;
+            localStorage.setItem('mail-safe-layout', options.mailSafeLayout);
+          }
+          if (options.renderWidth) {
+            document.getElementById('renderWidth').value = options.renderWidth;
+            localStorage.setItem('render-width', options.renderWidth);
+          }
+          if (options.profile) {
+            document.querySelectorAll('.profile-btn').forEach((b) => {
+              b.classList.toggle('active', b.getAttribute('data-profile') === options.profile);
+            });
+            localStorage.setItem('output-profile', options.profile);
+          }
+
           // localStorage에도 저장
           localStorage.setItem('html-input-content', historyItem.htmlInput);
           localStorage.setItem('css-input-content', historyItem.cssInput);
@@ -419,13 +440,91 @@ export function copyInlineCode() {
 
 /**
  * 미리보기 업데이트
+ *
+ * renderWidth를 주면 iframe을 그 폭으로 고정한 뒤 패널 크기에 맞춰 축소해서 보여준다.
+ * 변환도 같은 폭에서 이뤄지므로 미디어쿼리·백분율이 미리보기와 결과에서 동일하게 평가된다.
+ * (패널을 리사이즈해도 미리보기 레이아웃이 바뀌지 않는다)
  */
-export function updatePreview(frameId, html) {
+export function updatePreview(frameId, html, renderWidth = 0) {
   const frame = document.getElementById(frameId);
   const doc = frame.contentDocument;
   doc.open();
   doc.write(html);
   doc.close();
+
+  frame.dataset.renderWidth = String(renderWidth || 0);
+  applyPreviewScale(frame);
+  observePreviewResize(frame);
+}
+
+function applyPreviewScale(frame) {
+  const renderWidth = Number(frame.dataset.renderWidth || 0);
+  const wrapper = frame.parentElement;
+
+  if (!renderWidth || !wrapper) {
+    frame.style.flex = '';
+    frame.style.width = '';
+    frame.style.height = '';
+    frame.style.transform = '';
+    return;
+  }
+
+  const available = wrapper.clientWidth;
+  const scale = available > 0 ? Math.min(1, available / renderWidth) : 1;
+
+  frame.style.flex = 'none'; // 래퍼가 flex 컨테이너라 높이를 직접 지정하려면 필요
+  frame.style.transformOrigin = 'top left';
+  frame.style.width = `${renderWidth}px`;
+  frame.style.height = `${wrapper.clientHeight / scale}px`;
+  frame.style.transform = `scale(${scale})`;
+}
+
+const previewObservers = new WeakMap();
+
+function observePreviewResize(frame) {
+  if (previewObservers.has(frame) || typeof ResizeObserver === 'undefined') return;
+  const observer = new ResizeObserver(() => applyPreviewScale(frame));
+  observer.observe(frame.parentElement);
+  previewObservers.set(frame, observer);
+}
+
+/**
+ * 변환 경고 표시
+ */
+export function renderWarnings(warnings) {
+  const banner = document.getElementById('warningBanner');
+  if (!banner) return;
+
+  banner.textContent = '';
+
+  if (!warnings || !warnings.length) {
+    banner.hidden = true;
+    return;
+  }
+
+  const warnCount = warnings.filter((w) => w.level === 'warn').length;
+  banner.hidden = false;
+  banner.classList.toggle('has-warning', warnCount > 0);
+
+  const details = document.createElement('details');
+  details.open = warnCount > 0;
+
+  const summary = document.createElement('summary');
+  summary.textContent =
+    warnCount > 0
+      ? `호환성 경고 ${warnCount}건${warnings.length > warnCount ? ` · 참고 ${warnings.length - warnCount}건` : ''}`
+      : `참고 ${warnings.length}건`;
+  details.appendChild(summary);
+
+  const list = document.createElement('ul');
+  for (const warning of warnings) {
+    const item = document.createElement('li');
+    item.className = `warning-${warning.level}`;
+    item.textContent = warning.message;
+    list.appendChild(item);
+  }
+  details.appendChild(list);
+  banner.appendChild(details);
 }
 
 /**
