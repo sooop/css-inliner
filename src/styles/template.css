@@ -24,16 +24,16 @@
     --bg-ink:                #2B4C6F;
 
     /* Border */
-    --border:                rgba(43, 76, 111, 0.041);
-    --border-strong:         rgba(43, 76, 111, 0.083);
+    --border:                rgba(43, 76, 111, 0.075);
+    --border-strong:         rgba(43, 76, 111, 0.150);
 
     /* Callout Semantic Colors */
     --callout-info-color:    #368EED;
     --callout-info-bg:       #DBE3EB;
     --callout-warn-color:    #F57A00;
     --callout-warn-bg:       #F1E9E2;
-    --callout-danger-color:  #EE2607;
-    --callout-danger-bg:     #F5ECEB;
+    --callout-danger-color:  #ED3507;
+    --callout-danger-bg:     rgba(237, 53, 7, 0.12);
     --callout-accent-color:  #28AE6B;
     --callout-accent-bg:     #ECF3F0;
 
@@ -45,21 +45,21 @@
     --callout-accent-label:  #1A1A1A;
 
     /* Typography */
-    --font:                  'DM Sans', 'Noto Sans KR', sans-serif;
+    --font:                  'Pretendard', -apple-system, 'Noto Sans KR', sans-serif;
     --font-size:             14px;
     --lh:                    1.75;
 
     /* Heading scale — 이메일 기본값. 웹 프로파일에서는
        template-manager.js의 getWebOverridesCSS()가 더 작은 값으로 덮어쓴다 */
-    --h1-size:               clamp(1.75rem, 3.5vw, 2.25rem);
-    --h2-size:               1rem;
-    --h3-size:               1.15rem;
+    --h1-size:               27px;
+    --h2-size:               17.5px;
+    --h3-size:               16.5px;
 
     /* Table header tint (표 헤더: 프라이머리 틴트 배경 + 프라이머리 글자) */
-    --th-tint-bg:            rgba(43, 76, 111, 0.06);
+    --th-tint-bg:            rgba(43, 76, 111, 0.150);
 
     /* Radius */
-    --radius:                5px;
+    --radius:                6px;
 
     /* Spacing */
     --sp-xs:   0.360rem;

@@ -7,5 +7,10 @@
       "Bash(node --version)",
       "Bash(npm:*)"
     ]
+  },
+  "skillOverrides": {
+    "native-stone": "off",
+    "tsc-test": "off",
+    "frontend-design": "off"
   }
 }
