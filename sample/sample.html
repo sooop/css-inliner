@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartShip 서비스 종합 안내</title>
+    <style>
+/* ==========================================================================
+   SmartShip Notice Stylesheet — Structured Authority
+   TracX Logis / tx-html-generator template.css
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Noto+Sans+KR:wght@300;400;500;600&display=swap');
+
+/* --------------------------------------------------------------------------
+   Design Tokens
+   -------------------------------------------------------------------------- */
+:root {
+    /* Brand */
+    --primary:               #121361;
+    --secondary:             #4A6FA5;
+
+    /* Text */
+    --text-primary:          #1C1C2E;
+    --text-secondary:        #52526A;
+    --text-muted:            #9898B0;
+
+    /* Background */
+    --bg:                    #FFFFFF;
+    --bg-subtle:             #F5F5F8;
+    --bg-ink:                #121361;
+
+    /* Border */
+    --border:                rgba(18, 19, 97, 0.09);
+    --border-strong:         rgba(18, 19, 97, 0.18);
+
+    /* Callout Semantic Colors */
+    --callout-info-color:    #2E5FA3;
+    --callout-info-bg:       #EEF3FB;
+    --callout-warn-color:    #7A5800;
+    --callout-warn-bg:       #FBF5E6;
+    --callout-danger-color:  #8F2020;
+    --callout-danger-bg:     #FAEDED;
+    --callout-accent-color:  #2E5FA3;
+    --callout-accent-bg:     #EEF3FB;
+
+    /* Typography */
+    --font:                  'DM Sans', 'Noto Sans KR', sans-serif;
+    --font-size:             14.5px;
+    --lh:                    1.75;
+
+    /* Spacing */
+    --sp-xs:   0.375rem;
+    --sp-sm:   0.625rem;
+    --sp-md:   1.125rem;
+    --sp-lg:   1.875rem;
+    --sp-xl:   2.5rem;
+    --sp-2xl:  4rem;
+
+    /* Legacy aliases */
+    --primary-main:          var(--primary);
+    --secondary-main:        var(--secondary);
+    --text-disabled:         #CCCCCC;
+    --border-main:           rgba(18, 19, 97, 0.15);
+    --surface-hover:         #F0F2F8;
+}
+
+/* --------------------------------------------------------------------------
+   Reset
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+body {
+    font-family: var(--font);
+    font-size: var(--font-size);
+    font-weight: 400;
+    line-height: var(--lh);
+    color: var(--text-primary);
+    background-color: var(--bg);
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--sp-2xl) var(--sp-xl);
+    -webkit-font-smoothing: antialiased;
+}
+
+main {
+    max-width: 800px;
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sp-2xl);
+    padding-bottom: var(--sp-md);
+    border-bottom: 1px solid var(--border-strong);
+}
+
+.logo {
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--primary);
+    text-decoration: none;
+    display: inline-block;
+}
+
+.doc-type {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   Typography
+   -------------------------------------------------------------------------- */
+h1 {
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+    font-weight: 600;
+    color: var(--primary);
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    margin-bottom: var(--sp-sm);
+}
+
+.doc-meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: var(--sp-lg);
+    letter-spacing: 0.01em;
+}
+
+/* 섹션 구분 — 상단 accent bar로 존재감 확보 */
+h2 {
+    font-size: 1.0rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--primary);
+    margin-top: var(--sp-2xl);
+    margin-bottom: var(--sp-md);
+    padding-top: var(--sp-sm);
+    border-top: 1px solid var(--border-strong);
+    line-height: 1.3;
+}
+
+h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-top: var(--sp-lg);
+    margin-bottom: var(--sp-xs);
+    line-height: 1.4;
+}
+
+p {
+    margin-bottom: var(--sp-md);
+    color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Links
+   -------------------------------------------------------------------------- */
+a {
+    color: var(--secondary);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+a:hover {
+    color: var(--primary);
+}
+
+/* --------------------------------------------------------------------------
+   Lists
+   -------------------------------------------------------------------------- */
+ul, ol {
+    padding-left: var(--sp-lg);
+    margin-bottom: var(--sp-md);
+}
+
+li {
+    margin-bottom: var(--sp-xs);
+    color: var(--text-primary);
+}
+
+ul ul, ul ol, ol ul, ol ol {
+    margin-top: var(--sp-xs);
+    margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Callouts
+   -------------------------------------------------------------------------- */
+.callout {
+    margin: var(--sp-lg) 0;
+    padding: 0;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    overflow: hidden;
+}
+
+/* 타이틀 바 */
+.callout h3 {
+    margin: 0;
+    padding: var(--sp-sm) var(--sp-md);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: #fff;
+    background: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.callout p,
+.callout ul,
+.callout ol {
+    margin: 0;
+    padding: var(--sp-sm) var(--sp-md) var(--sp-md);
+    color: var(--text-secondary);
+}
+
+.callout p:not(:last-child),
+.callout ul:not(:last-child),
+.callout ol:not(:last-child) {
+    margin-bottom: 0;
+}
+
+.callout-label {
+    display: block;
+    padding: var(--sp-sm) var(--sp-md);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: #fff;
+    background: var(--text-secondary);
+}
+
+/* Callout Variants */
+.callout-info {
+    border-color: var(--callout-info-color);
+    background: var(--callout-info-bg);
+}
+.callout-info h3,
+.callout-info .callout-label {
+    background: var(--callout-info-color);
+    color: #fff;
+}
+
+.callout-warn {
+    border-color: var(--callout-warn-color);
+    background: var(--callout-warn-bg);
+}
+.callout-warn h3,
+.callout-warn .callout-label {
+    background: var(--callout-warn-color);
+    color: #fff;
+}
+
+.callout-danger {
+    border-color: var(--callout-danger-color);
+    background: var(--callout-danger-bg);
+}
+.callout-danger h3,
+.callout-danger .callout-label {
+    background: var(--callout-danger-color);
+    color: #fff;
+}
+
+.callout-accent {
+    border-color: var(--callout-accent-color);
+    background: var(--callout-accent-bg);
+}
+.callout-accent h3,
+.callout-accent .callout-label {
+    background: var(--callout-accent-color);
+    color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   Tables
+   -------------------------------------------------------------------------- */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: var(--sp-md) 0 var(--sp-lg);
+    font-size: 0.875rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* 가로형: dark header */
+thead tr {
+    background: var(--bg-ink);
+}
+
+th {
+    padding: var(--sp-sm) var(--sp-md);
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.75);
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* 가로형 thead 모서리 */
+thead th:first-child { border-radius: 7px 0 0 0; }
+thead th:last-child  { border-radius: 0 7px 0 0; }
+
+td {
+    padding: var(--sp-sm) var(--sp-md);
+    color: var(--text-primary);
+    vertical-align: top;
+    border: none;
+    border-bottom: 1px solid var(--border);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr:hover td {
+    background: var(--surface-hover);
+}
+
+/* 세로형 테이블 */
+.table-vertical {
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-vertical th {
+    width: 32%;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border-strong);
+}
+
+.table-vertical td {
+    border-bottom: 1px solid var(--border);
+}
+
+.table-vertical tr:last-child th,
+.table-vertical tr:last-child td {
+    border-bottom: none;
+}
+
+/* 세로형 첫 번째 행 모서리 */
+.table-vertical tr:first-child th { border-radius: 7px 0 0 0; }
+.table-vertical tr:first-child td { border-radius: 0 7px 0 0; }
+
+/* 세로형 마지막 행 모서리 */
+.table-vertical tr:last-child th  { border-radius: 0 0 0 7px; }
+.table-vertical tr:last-child td  { border-radius: 0 0 7px 0; }
+
+/* 반응형 */
+.table-responsive {
+    overflow-x: auto;
+    margin: var(--sp-lg) 0;
+}
+
+@media (max-width: 768px) {
+    .table-horizontal th,
+    .table-horizontal td {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-sm);
+    margin: var(--sp-lg) 0;
+    align-items: center;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 22px;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+    flex: 0 1 auto;
+    border-radius: 0;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+.btn-primary:hover {
+    background: #0D0E49;
+    border-color: #0D0E49;
+    color: #fff;
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    border-color: var(--primary);
+}
+.btn-secondary:hover {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+.btn-outline:hover {
+    background: var(--secondary);
+    color: #fff;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-strong);
+}
+.btn-ghost:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+.btn-warn {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-strong);
+}
+.btn-warn:hover {
+    border-color: var(--text-primary);
+    color: var(--text-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Blockquote
+   -------------------------------------------------------------------------- */
+blockquote {
+    margin: var(--sp-md) 0;
+    padding: var(--sp-md) var(--sp-lg);
+    border-left: 3px solid var(--primary);
+    background-color: var(--bg-subtle);
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+footer {
+    margin-top: var(--sp-2xl);
+    padding-top: var(--sp-md);
+    border-top: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    line-height: 1.7;
+}
+
+/* --------------------------------------------------------------------------
+   Utility
+   -------------------------------------------------------------------------- */
+.text-muted { color: var(--text-muted); }
+
+.mb-0  { margin-bottom: 0; }
+.mb-sm { margin-bottom: var(--sp-sm); }
+.mb-md { margin-bottom: var(--sp-md); }
+.mb-lg { margin-bottom: var(--sp-lg); }
+
+.mt-0  { margin-top: 0; }
+.mt-sm { margin-top: var(--sp-sm); }
+.mt-md { margin-top: var(--sp-md); }
+.mt-lg { margin-top: var(--sp-lg); }
+
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="https://www.tracxlogis.com" target="_blank" class="logo">
+            <img src="data:image/png;base64,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" alt="TRACXLOGIS" style="height: 25px;">
+        </a>
+    </header>
+    <!-- Main Content -->
+    <main>
+        <main>
+        <!--HEADER_PLACEHOLDER--><main>
+        <h1>SmartShip 서비스 종합 안내</h1>
+        <p>|!#-company_nm| |!#-cust_nm|님께 드리는 2026년 4분기 안내문입니다. 본 문서는 TracX Logis 템플릿이 지원하는 모든 구성 요소를 한 번에 확인하기 위한 샘플입니다.</p>
+        <h2>1. 텍스트 서식</h2>
+        <p>본문에서는 <strong>굵게</strong>, <em>기울임</em>, <del>취소선</del>, <a href="https://www.tracxlogis.com">링크 텍스트</a>를 사용할 수 있습니다. 변수는 |!#-order_no| 처럼 본문 중간에도 들어갈 수 있고, |!#-tracking_no| 형식도 자동 변환됩니다.</p>
+        <h3>소제목 (h3) 예시</h3>
+        <p>소제목 아래에는 보조 설명이 이어집니다. 긴 문단에서 줄바꿈과 여백이 어떻게 보이는지 확인하기 위해 문장을 조금 길게 작성했습니다. SmartShip은 여러 마켓플레이스의 상품, 재고, 주문을 한곳에서 관리하는 SaaS 플랫폼입니다.</p>
+        <h3>또 다른 소제목</h3>
+        <p>두 번째 소제목입니다. h3 간격과 본문 간격의 리듬을 확인합니다.</p>
+        <hr>
+        <h2>2. 목록</h2>
+        <p><strong>순서 없는 목록</strong></p>
+        <ul>
+        <li>마켓플레이스 주문 자동 수집</li>
+        <li>재고 실시간 동기화<ul>
+        <li>채널별 안전재고 설정</li>
+        <li>품절 시 자동 판매중지</li>
+        </ul></li>
+        <li>송장 일괄 등록 및 배송중 처리</li>
+        </ul>
+        <p><strong>순서 있는 목록</strong></p>
+        <ol>
+        <li>계정 로그인</li>
+        <li>마켓플레이스 API 연동 설정</li>
+        <li>상품 등록 및 매핑<ol>
+        <li>상품 정보 입력</li>
+        <li>채널별 옵션 매핑</li>
+        </ol></li>
+        <li>주문 수집 및 출고 처리</li>
+        </ol>
+        <h2>3. 표</h2>
+        <h3>세로형 표 (키-값)</h3>
+        <table class="table-vertical">
+        <tr>
+        <th>고객명</th>
+        <td>|!#-cust_nm|</td>
+        </tr>
+        <tr>
+        <th>계정 ID</th>
+        <td>|!#-account_id|</td>
+        </tr>
+        <tr>
+        <th>이메일</th>
+        <td>|!#-cust_email|</td>
+        </tr>
+        <tr>
+        <th>담당자 연락처</th>
+        <td>02-1234-5678</td>
+        </tr>
+        <tr>
+        <th>최근 접속 시각</th>
+        <td>2026-10-14 09:30:00</td>
+        </tr>
+        <tr>
+        <th>관리자 페이지</th>
+        <td>https://smartship.tracxlogis.com</td>
+        </tr>
+        </table>
+        <h3>가로형 표 (목록 데이터)</h3>
+        <table class="table-horizontal">
+        <thead>
+        <tr>
+        <th>마켓플레이스</th>
+        <th>연동 상태</th>
+        <th>최근 동기화</th>
+        <th>미처리 주문</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+        <td>쿠팡</td>
+        <td>정상</td>
+        <td>2026-10-14 09:10</td>
+        <td>12건</td>
+        </tr>
+        <tr>
+        <td>네이버 스마트스토어</td>
+        <td>정상</td>
+        <td>2026-10-14 09:05</td>
+        <td>8건</td>
+        </tr>
+        <tr>
+        <td>11번가</td>
+        <td>지연</td>
+        <td>2026-10-14 07:40</td>
+        <td>31건</td>
+        </tr>
+        <tr>
+        <td>Qoo10</td>
+        <td>인증 만료</td>
+        <td>2026-10-13 22:15</td>
+        <td>0건</td>
+        </tr>
+        <tr>
+        <td>Shopee</td>
+        <td>점검 중</td>
+        <td>2026-10-14 06:00</td>
+        <td>4건</td>
+        </tr>
+        </tbody>
+        </table>
+        <h3>많은 열이 있는 가로형 표</h3>
+        <table class="table-horizontal">
+        <thead>
+        <tr>
+        <th>주문번호</th>
+        <th>주문일</th>
+        <th>상품명</th>
+        <th>수량</th>
+        <th>단가</th>
+        <th>금액</th>
+        <th>상태</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+        <td>ORD-2026-0001</td>
+        <td>2026-10-10</td>
+        <td>무선 이어폰 블랙</td>
+        <td>2</td>
+        <td>45,000원</td>
+        <td>90,000원</td>
+        <td>출고완료</td>
+        </tr>
+        <tr>
+        <td>ORD-2026-0002</td>
+        <td>2026-10-11</td>
+        <td>휴대용 보조배터리 10000mAh</td>
+        <td>1</td>
+        <td>32,000원</td>
+        <td>32,000원</td>
+        <td>배송중</td>
+        </tr>
+        <tr>
+        <td>ORD-2026-0003</td>
+        <td>2026-10-12</td>
+        <td>스마트워치 밴드 (실리콘, 3종 세트)</td>
+        <td>3</td>
+        <td>12,500원</td>
+        <td>37,500원</td>
+        <td>상품준비중</td>
+        </tr>
+        <tr>
+        <td>ORD-2026-0004</td>
+        <td>2026-10-13</td>
+        <td>USB-C 충전 케이블 2m</td>
+        <td>5</td>
+        <td>8,900원</td>
+        <td>44,500원</td>
+        <td>결제완료</td>
+        </tr>
+        </tbody>
+        </table>
+        <h2>4. 콜아웃</h2>
+        <div class="callout callout-info">
+        <h3>일반 안내</h3>
+        <p>주문하신 상품은 영업일 기준 2-3일 내 배송됩니다.<br/>제주도 및 도서산간 지역은 추가 배송일이 소요될 수 있습니다.</p>
+        </div>
+        <div class="callout callout-warn">
+        <h3>서비스 중단 안내</h3>
+        <p>시스템 점검으로 2026-10-20 02:00-04:00 동안 서비스가 중단됩니다.<br/>점검 시간 중에는 모든 기능을 이용하실 수 없습니다.</p>
+        </div>
+        <div class="callout callout-accent">
+        <h3>신규 기능 출시</h3>
+        <p>SmartShip V3 베타가 오픈되었습니다. 기존 V2 데이터는 자동으로 이전됩니다.</p>
+        </div>
+        <h3>콜아웃 안의 목록과 서식</h3>
+        <div class="callout callout-info">
+        <h3>연동 전 확인사항</h3>
+        <p><strong>연동을 시작하기 전에</strong> 아래 항목을 준비해 주세요.</p>
+        <ol>
+        <li>마켓플레이스 판매자 계정 (사업자 인증 완료)</li>
+        <li>API 인증키 및 시크릿 키</li>
+        <li>출고지 및 반품지 주소 정보</li>
+        </ol>
+        <p>자세한 내용은 <a href="https://www.tracxlogis.com">연동 가이드</a>를 참조하세요.</p>
+        </div>
+        <h3>콜아웃 안의 표</h3>
+        <div class="callout callout-warn">
+        <h3>점검 일정</h3>
+        <p>다음 일정에 따라 순차적으로 점검이 진행됩니다.</p>
+        <table class="table-horizontal">
+        <thead>
+        <tr>
+        <th>일자</th>
+        <th>시간</th>
+        <th>영향 범위</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+        <td>2026-10-20</td>
+        <td>02:00-04:00</td>
+        <td>전체 서비스 중단</td>
+        </tr>
+        <tr>
+        <td>2026-10-22</td>
+        <td>01:00-02:00</td>
+        <td>주문 수집 일시 지연</td>
+        </tr>
+        <tr>
+        <td>2026-10-25</td>
+        <td>03:00-03:30</td>
+        <td>재고 동기화 일시 중단</td>
+        </tr>
+        </tbody>
+        </table>
+        </div>
+        <h3>콜아웃 안의 세로형 표와 버튼</h3>
+        <div class="callout callout-accent">
+        <h3>배송 정보 확인</h3>
+        <p>고객님의 주문이 아래와 같이 출고되었습니다.</p>
+        <table class="table-vertical">
+        <tr>
+        <th>배송업체</th>
+        <td>CJ대한통운</td>
+        </tr>
+        <tr>
+        <th>운송장번호</th>
+        <td>|!#-tracking_no|</td>
+        </tr>
+        <tr>
+        <th>예상 도착일</th>
+        <td>|!#-est_delivery_date|</td>
+        </tr>
+        </table>
+        <p><a href="https://tracking.tracxlogis.com?no=|!#-tracking_no|" class="btn btn-primary">배송 추적하기</a></p>
+        </div>
+        <h2>5. 인용문</h2>
+        <blockquote><p>SmartShip을 도입한 후 주문 처리 시간이 절반으로 줄었습니다.<br>여러 채널을 하나의 화면에서 관리할 수 있어 운영 부담이 크게 줄었습니다.</p></blockquote>
+        <h2>6. 버튼</h2>
+        <p><strong>스타일 지정 (4종)</strong></p>
+        <p class="btn-group"><a href="https://apply.tracxlogis.com" class="btn btn-primary">지금 신청하기</a><a href="https://www.tracxlogis.com" class="btn btn-secondary">자세히 보기</a><a href="https://www.tracxlogis.com" class="btn btn-outline">둘러보기</a><a href="https://cancel.tracxlogis.com" class="btn btn-warn">주문 취소</a></p>
+        <p><strong>스타일 자동 결정</strong></p>
+        <p class="btn-group"><a href="https://smartship.tracxlogis.com" class="btn btn-primary">연동 등록하기</a><a href="https://support.tracxlogis.com" class="btn btn-secondary">고객센터 문의</a><a href="#" class="btn btn-outline">나중에 하기</a><a href="https://unsubscribe.tracxlogis.com" class="btn btn-warn">구독 해지</a></p>
+        <p><strong>URL에 변수 포함</strong></p>
+        <p><a href="https://smartship.tracxlogis.com/orders/|!#-order_no|" class="btn btn-primary">내 주문 확인</a></p>
+        <hr>
+        <h2>7. 복합 시나리오 (한 메일 안의 혼합 구성)</h2>
+        <h3>주문 확인 및 출고 안내</h3>
+        <p>안녕하세요, |!#-cust_nm|님. 주문하신 상품이 출고되었습니다.</p>
+        <table class="table-vertical">
+        <tr>
+        <th>주문번호</th>
+        <td>|!#-order_no|</td>
+        </tr>
+        <tr>
+        <th>결제금액</th>
+        <td>|!#-amount|</td>
+        </tr>
+        <tr>
+        <th>배송지</th>
+        <td>|!#-addr1|, |!#-addr2|</td>
+        </tr>
+        <tr>
+        <th>연락처</th>
+        <td>|!#-phone|</td>
+        </tr>
+        </table>
+        <div class="callout callout-warn">
+        <h3>수령 시 유의사항</h3>
+        <p>부재 시 경비실 또는 택배함에 보관될 수 있습니다.<br/>배송 완료 후 3일 이내 미수령 시 반송될 수 있습니다.</p>
+        </div>
+        <p class="btn-group"><a href="https://tracking.tracxlogis.com" class="btn btn-primary">배송 추적하기</a><a href="https://support.tracxlogis.com" class="btn btn-secondary">고객센터 문의</a></p>
+        <p>문의사항이 있으시면 고객센터로 연락해 주세요. 감사합니다.</p>
+        <p>TracX Logis</p>
+        </main>
+        </main>
+    </main>
+    <!-- Footer -->
+    <footer>
+        TracXLogis - Beyond Borders, Beyond Limit
+    </footer>
+</body>
+</html>
