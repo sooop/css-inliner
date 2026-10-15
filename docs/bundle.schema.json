@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracxlogis.com/schemas/tx-mail-bundle/1.json",
+  "title": "tx-mail-bundle",
+  "description": "다국어 이메일 템플릿 번들(version 1). 설명은 docs/bundle-schema.md 참고.",
+  "type": "object",
+  "required": ["schema", "version", "name", "generatedAt", "baseLang", "langs", "variables", "locales", "dynamicTables", "source", "checksum"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "tx-mail-bundle" },
+    "version": { "const": 1 },
+    "templateCode": { "type": "string", "minLength": 1 },
+    "name": { "type": "string" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "baseLang": { "type": "string", "minLength": 1 },
+    "langs": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+    "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+    "locales": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/locale" }
+    },
+    "dynamicTables": { "type": "array", "items": { "$ref": "#/$defs/dynamicTable" } },
+    "source": { "$ref": "#/$defs/source" },
+    "checksum": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  },
+  "$defs": {
+    "variable": {
+      "type": "object",
+      "required": ["name", "description", "sample"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-zA-Z0-9_가-힣.\\-]+$" },
+        "description": { "type": "string" },
+        "sample": { "type": "string" }
+      }
+    },
+    "locale": {
+      "type": "object",
+      "required": ["subject", "html"],
+      "additionalProperties": false,
+      "properties": {
+        "subject": { "type": "string" },
+        "html": { "type": "string" }
+      }
+    },
+    "dynamicTable": {
+      "type": "object",
+      "required": ["id", "marker", "columns", "vars", "sampleRows", "rowTemplates"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "marker": { "type": "string", "pattern": "^\\|!#-rows_[a-zA-Z0-9_\\-]+\\|$" },
+        "columns": { "type": "integer", "minimum": 1 },
+        "vars": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+        "sampleRows": {
+          "type": "array",
+          "items": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
+        "rowTemplates": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "type": "string", "pattern": "^<tr[\\s\\S]*</tr>$" }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "description": "프로젝트 원본(재편집용). 앱의 Project 모델과 같다. 백오피스는 해석하지 않고 보관만 해도 된다.",
+      "required": ["id", "name", "langs", "baseLang", "structure", "strings", "sourceHash", "dynamicTables", "subject", "variables", "settings", "updatedAt"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "templateCode": { "type": "string" },
+        "langs": { "type": "array", "items": { "type": "string" } },
+        "baseLang": { "type": "string" },
+        "structure": { "type": "string" },
+        "strings": {
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
+        "sourceHash": {
+          "type": "object",
+          "additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } }
+        },
+        "dynamicTables": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "rowStructure", "vars", "sampleRows"],
+            "properties": {
+              "id": { "type": "string" },
+              "rowStructure": { "type": "string" },
+              "vars": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+              "sampleRows": { "type": "array", "items": { "type": "object", "additionalProperties": { "type": "string" } } }
+            }
+          }
+        },
+        "subject": { "type": "object", "additionalProperties": { "type": "string" } },
+        "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+        "settings": {
+          "type": "object",
+          "required": ["profile", "logoUrl", "renderWidth", "mailSafeLayout"],
+          "properties": {
+            "profile": { "enum": ["email", "web"] },
+            "customCss": { "type": "string" },
+            "logoUrl": { "type": "string" },
+            "renderWidth": { "type": "number" },
+            "mailSafeLayout": { "type": "boolean" }
+          }
+        },
+        "draftMarkup": { "type": "string" },
+        "updatedAt": { "type": "number" }
+      }
+    }
+  }
+}

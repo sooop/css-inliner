@@ -1,0 +1,176 @@
+{
+  "schema": "tx-mail-bundle",
+  "version": 1,
+  "templateCode": "SHIP_START",
+  "name": "배송 시작 안내",
+  "generatedAt": "2026-10-14T09:00:00.000Z",
+  "baseLang": "ko",
+  "langs": [
+    "ko",
+    "en",
+    "ja"
+  ],
+  "variables": [
+    {
+      "name": "cust_nm",
+      "description": "고객명",
+      "sample": "홍길동"
+    },
+    {
+      "name": "order_no",
+      "description": "주문번호",
+      "sample": "A-1001"
+    }
+  ],
+  "locales": {
+    "ko": {
+      "subject": "[TRACXLOGIS] 배송 시작 (|!#-order_no|)",
+      "html": "<table class=\"wrap\"><tbody>\n  <tr style=\"height: 20px;\"><td style=\"padding: 4px;\"><img class=\"logo\" src=\"data:image/png;base64,iVBORw0KGgo=\" alt=\"TRACXLOGIS\"><h1>배송이 시작되었습니다</h1><p><strong>|!#-cust_nm|</strong>님, 안녕하세요.</p><table class=\"info\"><tbody>\n  <tr style=\"height: 20px;\"><th style=\"padding: 4px;\">주문번호</th><td style=\"padding: 4px;\">|!#-order_no|</td></tr></tbody></table><table class=\"table-horizontal\"><thead>\n  <tr style=\"height: 20px;\"><th style=\"padding: 4px;\">상품</th><th style=\"padding: 4px;\">수량</th></tr></thead><tbody>|!#-rows_orders|</tbody></table></td></tr></tbody></table>"
+    },
+    "en": {
+      "subject": "[TRACXLOGIS] Shipped (|!#-order_no|)",
+      "html": "<table class=\"wrap\"><tbody>\n  <tr style=\"height: 20px;\"><td style=\"padding: 4px;\"><img class=\"logo\" src=\"data:image/png;base64,iVBORw0KGgo=\" alt=\"TRACXLOGIS\"><h1>Your shipment is on its way</h1><p>Hello, <strong>|!#-cust_nm|</strong>.</p><table class=\"info\"><tbody>\n  <tr style=\"height: 20px;\"><th style=\"padding: 4px;\">Order No.</th><td style=\"padding: 4px;\">|!#-order_no|</td></tr></tbody></table><table class=\"table-horizontal\"><thead>\n  <tr style=\"height: 20px;\"><th style=\"padding: 4px;\">Item</th><th style=\"padding: 4px;\">Qty</th></tr></thead><tbody>|!#-rows_orders|</tbody></table></td></tr></tbody></table>"
+    },
+    "ja": {
+      "subject": "[TRACXLOGIS] 発送 (|!#-order_no|)",
+      "html": "<table class=\"wrap\"><tbody>\n  <tr style=\"height: 20px;\"><td style=\"padding: 4px;\"><img class=\"logo\" src=\"data:image/png;base64,iVBORw0KGgo=\" alt=\"TRACXLOGIS\"><h1>発送を開始しました</h1><p><strong>|!#-cust_nm|</strong>様、こんにちは。</p><table class=\"info\"><tbody>\n  <tr style=\"height: 20px;\"><th style=\"padding: 4px;\">注文番号</th><td style=\"padding: 4px;\">|!#-order_no|</td></tr></tbody></table><table class=\"table-horizontal\"><thead>\n  <tr style=\"height: 20px;\"><th style=\"padding: 4px;\">商品</th><th style=\"padding: 4px;\">数量</th></tr></thead><tbody>|!#-rows_orders|</tbody></table></td></tr></tbody></table>"
+    }
+  },
+  "dynamicTables": [
+    {
+      "id": "orders",
+      "marker": "|!#-rows_orders|",
+      "columns": 2,
+      "vars": [
+        {
+          "name": "name",
+          "description": "상품명",
+          "sample": "무선 이어폰"
+        },
+        {
+          "name": "qty",
+          "description": "수량",
+          "sample": "2"
+        }
+      ],
+      "sampleRows": [
+        {
+          "name": "무선 이어폰",
+          "qty": "2"
+        },
+        {
+          "name": "케이블 <3m> & \"세트\"",
+          "qty": "1"
+        }
+      ],
+      "rowTemplates": {
+        "ko": "<tr style=\"height: 20px;\"><td style=\"padding: 4px;\">{{name}}</td><td style=\"padding: 4px;\">{{qty}}개</td></tr>",
+        "en": "<tr style=\"height: 20px;\"><td style=\"padding: 4px;\">{{name}}</td><td style=\"padding: 4px;\">{{qty}} pcs</td></tr>",
+        "ja": "<tr style=\"height: 20px;\"><td style=\"padding: 4px;\">{{name}}</td><td style=\"padding: 4px;\">{{qty}}個</td></tr>"
+      }
+    }
+  ],
+  "source": {
+    "id": "proj-1",
+    "name": "배송 시작 안내",
+    "templateCode": "SHIP_START",
+    "langs": [
+      "ko",
+      "en",
+      "ja"
+    ],
+    "baseLang": "ko",
+    "structure": "<table class=\"wrap\"><tbody><tr><td><img class=\"logo\" src=\"data:image/png;base64,iVBORw0KGgo=\" alt=\"TRACXLOGIS\"><h1 data-t=\"b001\"></h1><p data-t=\"b002\"></p><table class=\"info\"><tbody><tr><th data-t=\"b003\"></th><td>|!#-order_no|</td></tr></tbody></table><table class=\"table-horizontal\"><thead><tr><th data-t=\"b004\"></th><th data-t=\"b005\"></th></tr></thead><tbody data-rows=\"orders\"></tbody></table></td></tr></tbody></table>",
+    "strings": {
+      "b001": {
+        "ko": "배송이 시작되었습니다",
+        "en": "Your shipment is on its way",
+        "ja": "発送を開始しました"
+      },
+      "b002": {
+        "ko": "<strong>|!#-cust_nm|</strong>님, 안녕하세요.",
+        "en": "Hello, <strong>|!#-cust_nm|</strong>.",
+        "ja": "<strong>|!#-cust_nm|</strong>様、こんにちは。"
+      },
+      "b003": {
+        "ko": "주문번호",
+        "en": "Order No.",
+        "ja": "注文番号"
+      },
+      "b004": {
+        "ko": "상품",
+        "en": "Item",
+        "ja": "商品"
+      },
+      "b005": {
+        "ko": "수량",
+        "en": "Qty",
+        "ja": "数量"
+      },
+      "b006": {
+        "ko": "{{name}}",
+        "en": "{{name}}",
+        "ja": "{{name}}"
+      },
+      "b007": {
+        "ko": "{{qty}}개",
+        "en": "{{qty}} pcs",
+        "ja": "{{qty}}個"
+      }
+    },
+    "sourceHash": {},
+    "dynamicTables": [
+      {
+        "id": "orders",
+        "rowStructure": "<tr><td data-t=\"b006\"></td><td data-t=\"b007\"></td></tr>",
+        "vars": [
+          {
+            "name": "name",
+            "description": "상품명",
+            "sample": "무선 이어폰"
+          },
+          {
+            "name": "qty",
+            "description": "수량",
+            "sample": "2"
+          }
+        ],
+        "sampleRows": [
+          {
+            "name": "무선 이어폰",
+            "qty": "2"
+          },
+          {
+            "name": "케이블 <3m> & \"세트\"",
+            "qty": "1"
+          }
+        ]
+      }
+    ],
+    "subject": {
+      "ko": "[TRACXLOGIS] 배송 시작 (|!#-order_no|)",
+      "en": "[TRACXLOGIS] Shipped (|!#-order_no|)",
+      "ja": "[TRACXLOGIS] 発送 (|!#-order_no|)"
+    },
+    "variables": [
+      {
+        "name": "cust_nm",
+        "description": "고객명",
+        "sample": "홍길동"
+      },
+      {
+        "name": "order_no",
+        "description": "주문번호",
+        "sample": "A-1001"
+      }
+    ],
+    "settings": {
+      "profile": "email",
+      "logoUrl": "",
+      "renderWidth": 1000,
+      "mailSafeLayout": false
+    },
+    "updatedAt": 1760400000000
+  },
+  "checksum": "sha256:ea2727599031d8edc1d36dc58515079200c85712ac3637085d4c3f6fe9934e3e"
+}
