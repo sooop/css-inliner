@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="{{lang}}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,21 +7,11 @@
     <style>
 {{styles}}
     </style>
+    <style>
+{{preview_styles}}
+    </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <a href="https://www.tracxlogis.com" target="_blank" class="logo">
-            <img src="data:image/png;base64,{{logo_base64}}" alt="TRACXLOGIS" style="height: 25px;">
-        </a>
-    </header>
-    <!-- Main Content -->
-    <main>
 {{content}}
-    </main>
-    <!-- Footer -->
-    <footer>
-        TracXLogis - Beyond Borders, Beyond Limit
-    </footer>
 </body>
 </html>

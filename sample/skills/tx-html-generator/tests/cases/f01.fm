@@ -1,0 +1,14 @@
+---
+kind: notice
+name: 배송 시작 안내
+templateCode: SHIP_START
+subject.ko: 점검: 10:30 https://a.com/x?y=1
+subject.en: Your shipment
+subject.ja: 発送
+subject.fr: x
+foo: 1
+그냥 줄
+# 주석
+
+---
+# 본문

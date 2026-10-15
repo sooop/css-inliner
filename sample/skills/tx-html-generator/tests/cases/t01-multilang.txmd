@@ -1,0 +1,44 @@
+# 배송 시작 안내
+@en Your shipment is on its way
+@ja 発送開始のお知らせ
+
+안녕하세요, |!#-cust_nm|님!
+주문하신 **상품**이 출발했습니다.
+@en Hello, |!#-cust_nm|!
+@en Your **order** is on its way.
+@ja |!#-cust_nm|様、ご注文の商品を発送しました。
+
+- 항목 하나
+@en Item one
+- 항목 둘
+  - 중첩
+  @en Nested
+
+> 인용
+@en Quote
+
+[표: 세로형]
+- 주문번호: |!#-order_no|
+@en - Order No: |!#-order_no|
+- 배송시간| 14:30
+@en Delivery time| 14:30
+[/표]
+
+[표: 가로형]
+{마켓| 상태}
+@en {Market| Status}
+- 쿠팡| 정상
+@en - Coupang| OK
+[/표]
+
+[정보: 배송 추적]
+@en Track shipment
+@ja 配送追跡
+실시간으로 확인하세요.
+@en Check in real time.
+[/정보]
+
+[버튼, 배송 추적하기, https://t.com/|!#-tracking_no|, primary]
+@en Track shipment
+@ja 配送を追跡
+[버튼, 문의, https://s.com]

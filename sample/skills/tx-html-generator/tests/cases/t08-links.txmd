@@ -1,0 +1,5 @@
+[메일 문의](mailto:a@b.com) [전화](tel:010) [앵커](#top) [외부](https://x.com) [상대](/my) [치환자](|!#-url|)
+
+[버튼, 홈, https://www.tracxlogis.com, primary]
+[버튼, 메일, mailto:cs@tracxlogis.com]
+[버튼, 변수, |!#-link|]

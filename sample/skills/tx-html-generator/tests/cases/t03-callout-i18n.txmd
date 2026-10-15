@@ -1,0 +1,37 @@
+[정보: 연동 확인]
+@en Check before linking
+@ja 連携前の確認
+시작 전에 **준비**하세요.
+@en Prepare **first**.
+
+- 계정
+@en Account
+- 키
+@en Key
+  - 시크릿
+  @en Secret
+  @ja シークレット
+
+1. 하나
+@en One
+
+[표: 가로형]
+{일자| 내용}
+@en {Date| Detail}
+- 10-20| 중단
+@en - 10-20| Outage
+[/표]
+
+[표: 세로형]
+- 업체: CJ
+@en - Carrier: CJ
+[/표]
+
+> 인용문
+@en Quote
+
+[버튼, 추적, https://t.com/|!#-no|, primary]
+@en Track
+[버튼, 문의, https://s.com]
+@ja お問い合わせ
+[/정보]

@@ -1,288 +1,186 @@
 #!/usr/bin/env python3
 """
-TracX Logis HTML Generator
+TracX Logis TXMD 도구 (스킬의 단일 진입점)
 
-TracX Logis 마크업 파일에서 완전한 HTML 문서를 생성하는 통합 스크립트입니다.
-tx_markdown_parser.py와 tx_html_builder.py를 자동으로 실행합니다.
+.txmd(머리말 + 한국어 원문 + @en/@ja 번역 줄)를 검증하고 언어별 미리보기 HTML 을 만든다.
+
+사용
+  # 검증만 (오류가 있으면 종료 코드 1)
+  python3 tx_generate.py input.txmd
+
+  # 검증 + 정규화본 저장 + 언어별 미리보기
+  python3 tx_generate.py input.txmd --normalize out/name.txmd --preview-dir out/
+
+  # 예전 인터페이스(호환): 한 언어(기본 ko)의 완전한 HTML 한 개
+  python3 tx_generate.py input.md output.html --title "문서제목" [--lang en] [--template-dir DIR]
+
+종료 코드: 0 통과(경고 가능) / 1 검증 오류(--strict 면 경고도) / 2 입력·실행 오류
 """
 
+import argparse
+import json
 import os
 import sys
-import argparse
-import subprocess
-import tempfile
-import re
-from typing import Dict, List
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+
+from tx_html_builder import TemplateBuilder  # noqa: E402
+from tx_markdown_parser import parse_txmd  # noqa: E402
+from tx_txmd import (BASE_LANG, DEFAULT_LANGS, analyze, normalize_txmd, parse_front_matter)  # noqa: E402
 
 
-class HTMLGenerator:
-    """전체 프로세스 오케스트레이션"""
-    
-    def __init__(self, scripts_dir: str = None):
-        """
-        Args:
-            scripts_dir: 스크립트 디렉토리 경로 (None이면 현재 디렉토리)
-        """
-        if scripts_dir is None:
-            scripts_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        self.scripts_dir = scripts_dir
-        self.parser_path = os.path.join(scripts_dir, 'tx_markdown_parser.py')
-        self.builder_path = os.path.join(scripts_dir, 'tx_html_builder.py')
-        
-        # 스크립트 존재 확인
-        if not os.path.exists(self.parser_path):
-            raise FileNotFoundError(f"파서를 찾을 수 없습니다: {self.parser_path}")
-        if not os.path.exists(self.builder_path):
-            raise FileNotFoundError(f"빌더를 찾을 수 없습니다: {self.builder_path}")
-    
-    def _run_command(self, command: List[str]) -> subprocess.CompletedProcess:
-        """
-        명령어 실행
-        
-        Args:
-            command: 실행할 명령어 리스트
-            
-        Returns:
-            subprocess.CompletedProcess
-            
-        Raises:
-            subprocess.CalledProcessError: 명령어 실행 실패 시
-        """
-        try:
-            result = subprocess.run(
-                command,
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            return result
-        except subprocess.CalledProcessError as e:
-            print(f"명령어 실행 실패: {' '.join(command)}", file=sys.stderr)
-            print(f"오류 출력: {e.stderr}", file=sys.stderr)
-            raise
-    
-    def _collect_stats(self, html: str) -> Dict[str, int]:
-        """
-        생성된 HTML 통계 수집
-        
-        Args:
-            html: HTML 문자열
-            
-        Returns:
-            통계 딕셔너리
-        """
-        stats = {
-            'tables': 0,
-            'buttons': 0,
-            'callouts': 0,
-            'headings': 0,
-            'lists': 0
-        }
-        
-        # 테이블 수
-        stats['tables'] = len(re.findall(r'<table', html))
-        
-        # 버튼 수
-        stats['buttons'] = len(re.findall(r'<a[^>]*class="[^"]*btn[^"]*"', html))
-        
-        # 콜아웃 수
-        stats['callouts'] = len(re.findall(r'<div[^>]*class="[^"]*callout[^"]*"', html))
-        
-        # 제목 수
-        stats['headings'] = (
-            len(re.findall(r'<h1>', html)) +
-            len(re.findall(r'<h2>', html)) +
-            len(re.findall(r'<h3>', html))
-        )
-        
-        # 목록 수
-        stats['lists'] = len(re.findall(r'<ul>', html)) + len(re.findall(r'<ol>', html))
-        
-        return stats
-    
-    def generate(self, 
-                 markdown_file: str, 
-                 output_file: str,
-                 title: str = "TracX Logis",
-                 template_dir: str = None,
-                 verbose: bool = False) -> Dict:
-        """
-        전체 생성 프로세스 실행
-        
-        Args:
-            markdown_file: 입력 마크업 파일
-            output_file: 출력 HTML 파일
-            title: 문서 제목
-            template_dir: 템플릿 디렉토리 (None이면 기본값)
-            verbose: 상세 출력 여부
-            
-        Returns:
-            결과 딕셔너리:
-            {
-                'success': bool,
-                'output_file': str,
-                'stats': dict,
-                'errors': list
-            }
-        """
-        result = {
-            'success': False,
-            'output_file': output_file,
-            'stats': {},
-            'errors': []
-        }
-        
-        # 임시 파일 생성 (파싱된 HTML 저장용)
-        temp_html = None
-        
-        try:
-            # Step 1: 입력 파일 확인
-            if not os.path.exists(markdown_file):
-                raise FileNotFoundError(f"입력 파일을 찾을 수 없습니다: {markdown_file}")
-            
-            if verbose:
-                print(f"📄 입력 파일: {markdown_file}")
-            
-            # Step 2: 마크다운 파싱
-            if verbose:
-                print("🔄 마크업 파싱 중...")
-            
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
-                temp_html = f.name
-            
-            parser_cmd = [sys.executable, self.parser_path, markdown_file, temp_html]
-            if verbose:
-                parser_cmd.append('--verbose')
-
-            self._run_command(parser_cmd)
-            
-            if verbose:
-                print("✅ 파싱 완료")
-            
-            # Step 3: 템플릿 빌드
-            if verbose:
-                print("🔄 템플릿 결합 중...")
-            
-            builder_cmd = [sys.executable, self.builder_path, temp_html, output_file, '--title', title]
-            if template_dir:
-                builder_cmd.extend(['--template-dir', template_dir])
-            if verbose:
-                builder_cmd.append('--verbose')
-
-            self._run_command(builder_cmd)
-            
-            if verbose:
-                print("✅ 템플릿 결합 완료")
-            
-            # Step 4: 통계 수집
-            with open(output_file, 'r', encoding='utf-8') as f:
-                final_html = f.read()
-            
-            result['stats'] = self._collect_stats(final_html)
-            result['success'] = True
-            
-        except FileNotFoundError as e:
-            result['errors'].append(str(e))
-        except subprocess.CalledProcessError as e:
-            result['errors'].append(f"스크립트 실행 오류: {str(e)}")
-        except Exception as e:
-            result['errors'].append(f"예상치 못한 오류: {str(e)}")
-        finally:
-            # 임시 파일 정리
-            if temp_html and os.path.exists(temp_html):
-                try:
-                    os.unlink(temp_html)
-                except OSError:
-                    pass
-        
-        return result
+def read_text(path: str) -> str:
+    with open(path, 'r', encoding='utf-8-sig') as f:  # BOM 허용
+        return f.read()
 
 
-def format_stats(stats: Dict[str, int]) -> str:
-    """
-    통계 정보를 보기 좋게 포맷팅
-    
-    Args:
-        stats: 통계 딕셔너리
-        
-    Returns:
-        포맷된 문자열
-    """
+def write_text(path: str, text: str) -> None:
+    d = os.path.dirname(os.path.abspath(path))
+    os.makedirs(d, exist_ok=True)
+    with open(path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(text)
+
+
+def format_stats(stats) -> str:
     items = []
-    
-    if stats.get('headings', 0) > 0:
-        items.append(f"제목 {stats['headings']}개")
-    if stats.get('tables', 0) > 0:
-        items.append(f"테이블 {stats['tables']}개")
-    if stats.get('buttons', 0) > 0:
-        items.append(f"버튼 {stats['buttons']}개")
-    if stats.get('callouts', 0) > 0:
-        items.append(f"콜아웃 {stats['callouts']}개")
-    if stats.get('lists', 0) > 0:
-        items.append(f"목록 {stats['lists']}개")
-    
+    for key, label in (('headings', '제목'), ('tables', '표'), ('dynamic_tables', '동적 표'), ('buttons', '버튼'),
+                       ('callouts', '콜아웃'), ('lists', '목록'), ('blocks', '번역 블록')):
+        if stats.get(key):
+            items.append(f'{label} {stats[key]}개')
     return ', '.join(items) if items else '기본 콘텐츠'
 
 
-def main():
-    """CLI 진입점"""
-    parser = argparse.ArgumentParser(
-        description='TracX Logis HTML 문서 생성기',
+def build_previews(text: str, rep, builder: TemplateBuilder, langs, fallback: bool, title_override=None):
+    """언어별 미리보기 문서 {lang: html}. 미번역 블록은 fallback 이면 ko 문장으로 채운다."""
+    fm = rep.front
+    others = [l for l in langs if l != BASE_LANG]
+    docs = {}
+    for lang in langs:
+        r = parse_txmd(fm.body, lang, base=BASE_LANG, langs=others, fallback=fallback, dyn_mode='preview')
+        subject = fm.subject.get(lang) or (fm.subject.get(BASE_LANG) if fallback else None)
+        title = title_override or subject or fm.name or 'TracX Logis'
+        docs[lang] = builder.build_document(r.html, lang, kind=rep.kind, title=title, subject=subject)
+    return docs
+
+
+def _utf8_streams() -> None:
+    """콘솔 인코딩(예: Windows cp949)과 무관하게 한글 출력이 깨지지 않도록 UTF-8 로 고정"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding='utf-8', errors='replace')
+        except (AttributeError, ValueError):
+            pass
+
+
+def main() -> int:
+    _utf8_streams()
+    ap = argparse.ArgumentParser(
+        description='TracX Logis TXMD 검증 + 언어별 미리보기 생성기',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-예제:
-  %(prog)s input.md output.html
-  %(prog)s input.md output.html --title "배송 안내"
-  %(prog)s input.md output.html --template-dir /path/to/templates --verbose
-        """
-    )
-    
-    parser.add_argument('input', help='입력 마크업 파일 (.md 또는 .txt)')
-    parser.add_argument('output', help='출력 HTML 파일')
-    parser.add_argument('--title', default='TracX Logis', help='문서 제목 (기본값: TracX Logis)')
-    parser.add_argument('--scripts-dir', help='스크립트 디렉토리 (기본값: 현재 디렉토리)')
-    parser.add_argument('--template-dir', help='템플릿 디렉토리 (기본값: /mnt/project/)')
-    parser.add_argument('-v', '--verbose', action='store_true', help='상세 출력')
-    
-    args = parser.parse_args()
-    
+        epilog=__doc__.split('사용', 1)[1] if __doc__ else '')
+    ap.add_argument('input', help='입력 .txmd (머리말 유무 모두 가능) 또는 예전 마크업 파일')
+    ap.add_argument('output', nargs='?', help='(호환) 출력 .html 한 개. 주면 한 언어의 완전한 HTML 만 만든다')
+    ap.add_argument('--preview-dir', help='언어별 미리보기 출력 폴더 (preview_ko.html, preview_en.html, preview_ja.html)')
+    ap.add_argument('--normalize', metavar='PATH', help='정규화된 .txmd 를 이 경로에 저장')
+    ap.add_argument('--langs', default=','.join(DEFAULT_LANGS), help='검사·미리보기 언어(기본 ko,en,ja)')
+    ap.add_argument('--kind', choices=['mail', 'notice'], help='머리말 kind 를 덮어씀(기본: 머리말 값, 없으면 mail)')
+    ap.add_argument('--name', help='정규화본의 머리말 name 이 없을 때 채움')
+    ap.add_argument('--title', help='(호환) 문서 <title>. 생략하면 머리말 제목')
+    ap.add_argument('--lang', default=BASE_LANG, help='(호환 모드) 출력 언어, 기본 ko')
+    ap.add_argument('--template-dir', help='assets 폴더(기본: 스킬의 assets)')
+    ap.add_argument('--no-fallback', action='store_true', help='미리보기에서 미번역 블록을 비워 둠(기본: ko 문장으로 채움)')
+    ap.add_argument('--strict', action='store_true', help='경고도 실패로 취급')
+    ap.add_argument('--json', action='store_true', help='검증 결과를 JSON 으로 출력')
+    ap.add_argument('--scripts-dir', help=argparse.SUPPRESS)  # 예전 인자 호환(무시)
+    ap.add_argument('-v', '--verbose', action='store_true')
+    args = ap.parse_args()
+
+    langs = [l.strip() for l in args.langs.split(',') if l.strip()]
+    if BASE_LANG not in langs:
+        langs.insert(0, BASE_LANG)
+
     try:
-        # 생성기 초기화
-        generator = HTMLGenerator(args.scripts_dir)
-        
-        # HTML 생성
-        result = generator.generate(
-            markdown_file=args.input,
-            output_file=args.output,
-            title=args.title,
-            template_dir=args.template_dir,
-            verbose=args.verbose
-        )
-        
-        # 결과 출력
-        if result['success']:
-            print(f"\n✅ HTML 생성 완료: {result['output_file']}")
-            if result['stats']:
-                stats_str = format_stats(result['stats'])
-                print(f"📊 생성된 콘텐츠: {stats_str}")
-            sys.exit(0)
-        else:
-            print(f"\n❌ HTML 생성 실패", file=sys.stderr)
-            for error in result['errors']:
-                print(f"  - {error}", file=sys.stderr)
-            sys.exit(1)
-            
+        text = read_text(args.input)
+    except FileNotFoundError:
+        print(f'오류: 입력 파일을 찾을 수 없습니다: {args.input}', file=sys.stderr)
+        return 2
+    except UnicodeDecodeError:
+        print('오류: 입력 파일이 UTF-8 이 아닙니다.', file=sys.stderr)
+        return 2
+
+    try:
+        builder = TemplateBuilder(args.template_dir)
+        builder.load_all()
     except FileNotFoundError as e:
-        print(f"❌ 오류: {str(e)}", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ 예상치 못한 오류: {str(e)}", file=sys.stderr)
-        if args.verbose:
-            import traceback
-            traceback.print_exc()
-        sys.exit(1)
+        print(f'오류: {e}', file=sys.stderr)
+        return 2
+
+    # ---- 호환 모드: 예전 `input output.html`
+    if args.output:
+        rep = analyze(text, [args.lang] if args.lang == BASE_LANG else langs, args.kind)
+        fm = rep.front
+        lang = args.lang
+        others = [l for l in langs if l != BASE_LANG]
+        r = parse_txmd(fm.body, lang, base=BASE_LANG, langs=others, fallback=True, dyn_mode='preview')
+        title = args.title or fm.subject.get(lang) or fm.name or 'TracX Logis'
+        write_text(args.output, builder.build_document(r.html, lang, kind=rep.kind, title=title,
+                                                       subject=fm.subject.get(lang)))
+        for w in fm.warnings + r.warnings:
+            print(w, file=sys.stderr)
+        print(f'HTML 생성 완료: {args.output}')
+        print(f'생성된 콘텐츠: {format_stats(rep.stats)}')
+        return 0
+
+    rep = analyze(text, langs, args.kind)
+
+    # ---- 보고
+    if args.json:
+        out = {
+            'kind': rep.kind, 'name': rep.name, 'langs': rep.langs, 'subject': rep.subject,
+            'variables': rep.variables, 'stats': rep.stats,
+            'errors': [{'code': i.code, 'message': i.message} for i in rep.errors],
+            'warnings': [{'code': i.code, 'message': i.message} for i in rep.warnings],
+        }
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+    else:
+        print(f'종류: {"공지" if rep.kind == "notice" else "메일"}   이름: {rep.name or "(없음)"}   언어: {", ".join(rep.langs)}')
+        print(f'구성: {format_stats(rep.stats)}')
+        if rep.variables:
+            print('치환자: ' + ', '.join(f'|!#-{v}|' for v in rep.variables))
+        for i in rep.errors:
+            print(f'[오류] ({i.code}) {i.message}')
+        for i in rep.warnings:
+            print(f'[경고] ({i.code}) {i.message}')
+        print(f'결과: 오류 {len(rep.errors)}건, 경고 {len(rep.warnings)}건')
+
+    # ---- 산출물
+    try:
+        if args.normalize:
+            fm = rep.front
+            norm = normalize_txmd(text, name=args.name if not fm.name else None, kind=args.kind)
+            write_text(args.normalize, norm)
+            if not args.json:
+                print(f'정규화본 저장: {args.normalize}')
+        if args.preview_dir:
+            docs = build_previews(text, rep, builder, langs, fallback=not args.no_fallback, title_override=args.title)
+            for lang, doc in docs.items():
+                path = os.path.join(args.preview_dir, f'preview_{lang}.html')
+                write_text(path, doc)
+                if not args.json:
+                    print(f'미리보기 저장: {path}')
+    except OSError as e:
+        print(f'오류: 파일을 쓸 수 없습니다: {e}', file=sys.stderr)
+        return 2
+
+    failed = bool(rep.errors) or (args.strict and bool(rep.warnings))
+    return 1 if failed else 0
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        sys.exit(main())
+    except Exception as exc:  # noqa: BLE001
+        print(f'오류: 예상치 못한 문제가 생겼습니다: {exc}', file=sys.stderr)
+        sys.exit(2)

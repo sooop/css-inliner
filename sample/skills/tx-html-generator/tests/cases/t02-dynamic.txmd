@@ -1,0 +1,37 @@
+# 주문 내역
+@en Order details
+@ja ご注文内容
+
+[표: 가로형, 동적: orders]
+{상품명| 수량| 금액}
+@en {Item| Qty| Amount}
+@ja {商品名| 数量| 金額}
+- {{name}}| {{qty}}개| {{amount}}원
+@en - {{name}}| {{qty}} pcs| {{amount}} KRW
+@ja - {{name}}| {{qty}}個| {{amount}}ウォン
+@var name 상품명
+@var qty 수량
+@sample name=무선 이어폰| qty=2| amount=90,000
+@sample name=<보조> & "배터리"| qty=1| amount=32,000
+[/표]
+
+합계는 |!#-total|원입니다.
+@en The total is |!#-total| KRW.
+@ja 合計は|!#-total|ウォンです。
+
+[표: 가로형, 동적: nosample]
+{a| b}
+- {{x}}| {{y}}
+@en - {{x}}| fixed
+[/표]
+
+[정보]
+[표: 가로형, 동적: inner]
+{a| b}
+- {{x}}| 1
+[/표]
+[/정보]
+
+[표: 세로형, 동적: vert]
+- k: v
+[/표]

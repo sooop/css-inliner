@@ -1,0 +1,17 @@
+{cust}님 안녕하세요. 주문 |!#-orderno| 와 {고객 번호}, {a.b-c} 변수.
+@en Hi {cust}. Order |!#-orderno| and {a.b-c}.
+@ja {cust}様。注文 |!#-orderno|。{a.b-c}
+
+snake_case_word _기울임_ __굵게__ ___둘다___ *em*
+a_b_c |!#-x_y_z| [x](https://a.com/foo_bar_baz)
+
+[표: 가로형]
+{이름| 값}
+- {x}| {{y}}
+[/표]
+
+1. a
+2. b
+   1. c
+   2. d
+3. e
