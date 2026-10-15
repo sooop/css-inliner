@@ -248,8 +248,8 @@ hr {
 
 blockquote {
     margin: 18px 0 0;
-    padding: 14px 18px;
-    border-left: 3px solid var(--acc);
+    padding: 18px 22px;
+    border: 0;
     border-radius: var(--radius);
     background-color: var(--tint);
 }
@@ -258,7 +258,7 @@ blockquote p {
     margin: 0;
     font-size: 14px;
     line-height: 25px;
-    font-style: italic;
+    text-align: center;
     color: var(--sub);
 }
 
@@ -413,7 +413,6 @@ img {
 
 .callout blockquote {
     background-color: var(--co-th);
-    border-left-color: var(--co-hd);
 }
 
 /* 콜아웃 안 표 */

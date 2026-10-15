@@ -1066,14 +1066,14 @@
   }
   .tx-host :global(.tx-pm blockquote.tx-quote) {
     margin: 0 0 0.7em;
-    padding: 2px 12px;
-    border-left: 3px solid var(--accent);
+    padding: 10px 16px;
     color: var(--muted);
     background: var(--surface2);
-    border-radius: 0 4px 4px 0;
+    border-radius: 6px;
   }
   .tx-host :global(.tx-pm blockquote p) {
     margin: 0.2em 0;
+    text-align: center;
   }
   .tx-host :global(.tx-pm hr) {
     border: none;
