@@ -97,7 +97,7 @@ TX 마크업(스킬 `tx-html-generator` 의 `MARKUP_SYNTAX.md`)에 **번역 줄*
   - `vars`: 행 템플릿에서 추출한 `{{변수}}`(+`@var` 설명, 첫 예시 행 값을 sample 로).
 - `composeForSend(src, lang)`: `<tbody>|!#-rows_orders|</tbody>` — tbody 안에는 표식 치환자 하나뿐. 행 템플릿·예시 행·`data-*` 는 발송 HTML 에 들어가지 않는다(서버가 `|!#-rows_orders|` 를 `<tr>…</tr>` 연속 문자열로 교체).
 - `composePreview(src, lang)`: 같은 표를 예시 행으로 채운 tbody (값은 HTML 이스케이프, `data-t` 유지로 클릭 편집 가능). 예시 행이 없으면 표식 치환자 그대로.
-- 번들 내보내기(P3)에는 `dynamicTables`(행 템플릿 언어별 합성 결과 포함)를 별도로 실어야 한다.
+- 번들 내보내기(P3)에는 `dynamicTables`(행 템플릿 언어별 합성 결과 포함)를 별도로 싣는다(구현됨: `buildBundle`).
 
 ## 4-A. 콜아웃 본문 (확장)
 
@@ -178,6 +178,7 @@ TX 마크업(스킬 `tx-html-generator` 의 `MARKUP_SYNTAX.md`)에 **번역 줄*
 4. **번역 줄**(`@en`/`@ja`, 선택): 번역할 블록 바로 아래에 붙인다. 콜아웃 안의 문단·목록 항목·표 행·버튼·인용에도 동일. 콜아웃 여는 줄 바로 아래는 제목 번역. 번역 줄이 없으면 기존 마크업과 같다.
 5. 스킬 예시 중 `MARKUP_SYNTAX.md` 의 `{이름, 이메일, 전화}`(콤마 구분 헤더)·`[표: 가로형]` 콤마 행 예시는 파서가 파이프(`|`) 구분만 해석하므로 **문서 예시를 파이프로 고칠 것**(원본 문서의 불일치, 이번 확장 범위 밖이라 파서는 그대로).
 6. 출력 구조는 `sample/sample.html` 과 같다(`div.callout.callout-{info|warn|accent} > h3 + 본문 블록`). 템플릿의 `callout-danger` 는 마크업 종류에 없다(정보/경고/강조 → info/warn/accent).
+7. **머리말(front matter, 선택)**: 파일 맨 첫 줄을 `---` 로 시작해 `kind`(mail|notice)·`name`·`templateCode`·`subject.ko/en/ja` 를 `key: value` 로 적고 `---` 로 닫으면, 앱의 `.txmd 불러오기` 가 유형·이름·코드·제목까지 채워 새 프로젝트를 만든다(§6). 머리말이 없으면 본문만 읽는다.
 
 ## 4-D. 공지 유형(kind: notice)에서의 사용
 
@@ -188,3 +189,27 @@ TX 마크업(스킬 `tx-html-generator` 의 `MARKUP_SYNTAX.md`)에 **번역 줄*
 - **동적 표 금지**: `[표: 가로형, 동적: id]` 는 만들기 오류. 같은 표는 `[표: 가로형]` 정적 표로 쓴다.
 - 링크는 §4-C 와 같이 항상 `target="_blank" rel="noopener noreferrer"` 로 나온다.
 - 제목은 초안이 아니라 프로젝트의 "공지 제목"(ko/en/ja)에서 온다. 출력 구역마다 `<!-- tx:title … -->` 로 들어간다.
+
+## 6. 머리말(front matter) — `.txmd 불러오기`
+
+스킬이 만든 `.txmd` 파일 1개로 새 프로젝트를 만들 때(프로젝트 목록의 `.txmd 불러오기`) 파일 앞에 머리말을 둘 수 있다. 없으면 본문만 읽는다(`+ 초안` 과 같은 동작, 이름은 본문 첫 제목).
+
+```
+---
+kind: mail
+name: 배송 시작 안내
+templateCode: SHIP_START
+subject.ko: 배송이 시작되었습니다
+subject.en: Your shipment is on its way
+subject.ja: 発送を開始しました
+---
+# 배송이 시작되었습니다
+…(이후 본문 = 위 문법 그대로)
+```
+
+- 파일 **맨 첫 줄**이 `---`, 이후 `---` 한 줄로 닫는다(BOM·CRLF 허용). 닫는 줄이 없으면 경고하고 전체를 본문으로 읽는다.
+- 한 줄에 `key: value`: 첫 `:` 뒤를 trim 한다(따옴표 불필요, 값에 `:`·URL 가능). 빈 줄과 `#` 로 시작하는 줄은 무시. 중첩 없음.
+- 키: `kind`(`mail`|`notice`, 생략 시 mail, 다른 값은 경고 후 mail — 이 값에 한해 줄 끝 `# 설명` 허용), `name`(프로젝트 이름, 생략 시 본문 첫 제목), `templateCode`(선택), `subject.ko`·`subject.en`·`subject.ja`(언어별 제목, 일부만 가능). 언어는 ko·en·ja 고정. 알 수 없는 키는 경고 후 무시.
+- 머리말은 본문 파서에 넘기기 전에 제거되므로, 본문 파서 경고의 `(line N)` 은 **머리말을 뺀 본문 기준**이다.
+- 가져오기 실패(빈 본문·공지의 동적 표 등)는 프로젝트를 만들지 않고 이유를 토스트로 알린다. 경고(머리말·본문·공지의 치환자)는 만든 뒤 토스트로 알린다.
+- **kind 별 차이**: mail 은 메일 제목(`project.subject`)이 되고 셸(로고·푸터)이 붙는다. notice 는 셸이 없고 치환자·동적 표를 쓸 수 없으며(§4-D), 제목은 출력 구역마다 `<!-- tx:title … -->` 주석으로 나온다.

@@ -20,3 +20,5 @@ export {
 } from './compose';
 export type { ComposeOptions, ComposeResult, DecomposeResult, VariableIssue } from './compose';
 export { ensureLinkTargets, findLinksMissingTarget, needsLinkTarget } from './links';
+export { parseFrontMatter } from './frontmatter';
+export type { FrontMatterMeta, FrontMatterResult } from './frontmatter';

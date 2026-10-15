@@ -8,6 +8,7 @@
   let nameDraft = $state('');
   let fileInput = $state<HTMLInputElement>();
   let archiveInput = $state<HTMLInputElement>();
+  let txmdInput = $state<HTMLInputElement>();
 
   function fmt(t: number): string {
     return new Date(t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -32,6 +33,12 @@
     input.value = '';
     if (f) await studio.importArchive(await f.text());
   }
+  async function pickTxmd(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (f) await studio.importTxmdFile(await f.text());
+  }
 </script>
 
 <div class="drow" style="margin-bottom:8px">
@@ -48,6 +55,8 @@
   <button type="button" class="btn sm" title="저장된 모든 프로젝트(메일·공지)를 파일 1개로 저장합니다" onclick={() => studio.exportArchive()}>전체 내보내기</button>
   <button type="button" class="btn sm" title="프로젝트 보관 파일(.txproj.json)을 새 사본으로 추가합니다" onclick={() => archiveInput?.click()}>보관 파일 가져오기</button>
   <input bind:this={archiveInput} type="file" accept="application/json,.json" class="sr-only" tabindex="-1" aria-label="프로젝트 보관 파일 선택" onchange={pickArchive} />
+  <button type="button" class="btn sm" title="머리말이 있는 .txmd 파일로 새 프로젝트(메일·공지)를 만듭니다" onclick={() => txmdInput?.click()}>.txmd 불러오기</button>
+  <input bind:this={txmdInput} type="file" accept=".txmd,.md,text/plain" class="sr-only" tabindex="-1" aria-label=".txmd 파일 선택" onchange={pickTxmd} />
 </div>
 
 <div class="col" style="gap:8px">

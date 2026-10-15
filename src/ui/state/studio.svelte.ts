@@ -29,7 +29,7 @@ import {
   type ProjectKind,
   type RenderedProject,
 } from '../../project';
-import { createProjectFromDraft, draftTitle, planDraft, type DraftPlan } from './draft';
+import { createProjectFromDraft, createProjectFromTxmdFile, draftTitle, planDraft, type DraftPlan } from './draft';
 import { addSampleRow, removeSampleRow, removeTableVar, setSampleCell, updateTableVar } from './dyn';
 import { copyText, downloadText, safeFilename } from './files';
 import { cssFor, inlineFn } from './inline';
@@ -486,6 +486,22 @@ class Studio {
     const p = restoreProject(json as Parameters<typeof restoreProject>[0]);
     await this.persistNew({ ...p, id: newProjectId(), name: `${p.name} (가져옴)`, updatedAt: Date.now() });
     this.toast('번들에서 프로젝트를 복원했습니다.');
+  }
+
+  /** 머리말이 붙은 .txmd 파일(스킬 산출물)로 새 프로젝트를 만든다. 실패하면 프로젝트를 만들지 않고 이유를 토스트로 알린다. */
+  async importTxmdFile(text: string): Promise<boolean> {
+    let made: ReturnType<typeof createProjectFromTxmdFile>;
+    try {
+      made = createProjectFromTxmdFile(text, `새 프로젝트 ${this.projects.length + 1}`);
+    } catch (e) {
+      this.toast(`.txmd 불러오기 실패: ${e instanceof Error ? e.message : String(e)}`);
+      return false;
+    }
+    await this.persistNew(made.project);
+    this.leftTab = 'blocks';
+    const w = made.warnings;
+    this.toast(`프로젝트 "${made.project.name}" 을(를) 만들었습니다.${w.length ? ` (경고 ${w.length}건: ${w[0]}${w.length > 1 ? ' 외' : ''})` : ''}`);
+    return true;
   }
 
   /* ------------------------------------------------------------ 변경 적용 */

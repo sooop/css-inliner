@@ -6,6 +6,7 @@
  * 은 현재 UI 에서 쓰지 않는다(변환 확인 단계 삭제). 나중에 '초안 재적용' 기능이 필요할 때를 위해 순수 함수로 남겨 두며,
  * 단위 테스트(state.test.ts·roundtrip.test.ts)가 동작을 고정한다. planDraft 는 새 프로젝트 생성(빈 프로젝트에 적용)과 샘플 프로젝트 생성에도 쓰인다.
  */
+import { parseFrontMatter } from '../../markup/frontmatter';
 import { inheritIds } from '../../markup/ids';
 import { parseTxmd } from '../../markup/parser';
 import { wrapShell, type ShellOptions } from '../../markup/shell';
@@ -179,4 +180,19 @@ export function createProjectFromDraft(txmd: string, info: { name: string; templ
   const blank = createProject({ name: info.name, ...(code ? { templateCode: code } : {}), ...(kind === 'notice' ? { kind } : {}), subject: { ko: '', en: '', ja: '' } });
   const plan = planDraft(blank, txmd);
   return { project: plan.next, warnings: [...plan.warnings, ...a.warnings.filter((w) => !plan.warnings.includes(w))] };
+}
+
+/**
+ * 머리말(front matter)이 붙은 .txmd 파일 1개로 새 프로젝트를 만든다(순수 — 저장하지 않는다). 머리말이 없으면 본문만 읽는다.
+ * 이름은 머리말 name → 본문 첫 제목 → fallbackName, 제목(subject)은 머리말 값으로 채운다. 빈 본문·해석 실패는 예외.
+ */
+export function createProjectFromTxmdFile(text: string, fallbackName: string): { project: Project; warnings: string[] } {
+  const fm = parseFrontMatter(text);
+  const made = createProjectFromDraft(fm.body, {
+    name: fm.meta.name || draftTitle(fm.body) || fallbackName,
+    templateCode: fm.meta.templateCode,
+    kind: fm.meta.kind,
+  });
+  const project: Project = { ...made.project, subject: { ...made.project.subject, ...fm.meta.subject } };
+  return { project, warnings: [...fm.warnings, ...made.warnings] };
 }
