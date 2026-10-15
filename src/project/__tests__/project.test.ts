@@ -389,3 +389,31 @@ describe('docs 산출물', () => {
     expect(md).toBe(buildHandoffMd(p, rendered));
   });
 });
+
+describe('verifyBundle — source 정합', () => {
+  const mk = async () => {
+    const { inline } = makeFakeInline();
+    const r = await exportBundle(makeProject(), { inline, now: new Date('2026-01-01T00:00:00Z') });
+    return JSON.parse(r.json!) as Record<string, any>;
+  };
+  const resign = (b: Record<string, any>) => ({ ...b, checksum: computeChecksum(b as never) });
+
+  it('정상 번들은 통과', async () => {
+    expect(verifyBundle(await mk())).toEqual({ ok: true, errors: [] });
+  });
+  it('source.strings 에서 참조 ID 가 빠지면 거부(체크섬이 맞아도)', async () => {
+    const b = await mk();
+    delete b.source.strings.b001;
+    const v = verifyBundle(resign(b));
+    expect(v.ok).toBe(false);
+    expect(v.errors.join()).toContain('b001');
+  });
+  it('source 메타가 최상위와 다르면 거부', async () => {
+    const b = await mk();
+    b.source.baseLang = 'en';
+    b.source.name = '다른 이름';
+    const v = verifyBundle(resign(b));
+    expect(v.errors.join()).toContain('source.baseLang');
+    expect(v.errors.join()).toContain('source.name');
+  });
+});

@@ -46,7 +46,8 @@
 5. 모든 동적 표·언어: `locales[lang].html` 에 `marker` 가 **정확히 1회** 있다.
 6. `locales[*].html` 에 `data-t=`/`data-rows=` 가 남아 있지 않다.
 7. **링크 새 창 규칙**: `locales[*].html` 과 `dynamicTables[].rowTemplates[*]` 의 모든 `<a href>` 는 `target="_blank"` 와 `rel` 에 `noopener noreferrer` 를 가진다(아래 제외 대상 제외). 앱이 합성 단계에서 자동으로 붙이므로 import 측은 값을 신뢰해도 되고, `verifyBundle` 은 빠진 링크가 있으면 오류로 본다.
-8. `checksum` 재계산 값과 일치.
+8. `source` 정합: `name`·`templateCode`·`baseLang`·`langs`·`variables` 가 최상위와 같고, `source.structure`·`dynamicTables[].rowStructure` 의 `data-t` ID 가 모두 `source.strings` 에 있다. (`locales` 가 `source` 에서 만들어졌는지는 인라인 변환 결과라 값으로 대조할 수 없다 — 검사하지 않는다.)
+9. `checksum` 재계산 값과 일치.
 
 ### 링크 새 창 규칙 (`target="_blank"`)
 
@@ -61,12 +62,12 @@
 |---|---|
 | 언어 간 `\|!#-x\|` 치환자 집합 불일치(본문·제목 각각) | 오류 |
 | `\|!#-` 형식 깨짐(닫는 `\|` 누락, 허용 외 문자, 대소문자만 다른 이름 중복) | 오류 |
-| 미번역(빈 문자열, 제목 포함) | 오류 |
+| 미번역(빈 문자열, 제목 포함) | 경고 (앱 설정에서 번역 경고 끄기 가능) |
 | 행 템플릿 `{{var}}` ↔ `vars` 불일치(선언했으나 미사용 / 미선언 사용) | 오류 |
 | 언어 간 `{{var}}` 집합 불일치 | 오류 |
 | 표식·행 변수 이름 충돌(행 변수가 본문 치환자와 같은 이름, 본문에 `\|!#-rows_<id>\|` 직접 사용, 표 id 중복·형식 오류) | 오류 |
 | 기준 언어 원문이 바뀐 뒤 갱신되지 않은 번역 | 경고 |
-| 허용 외 인라인 태그 제거(허용: `strong` `em` `a` `br`) | 경고 |
+| 허용 외 인라인 태그 제거(허용: `strong` `em` `del` `a` `br`) | 경고 |
 | 인라인 변환 경고(엔진 `warnings` 중 info 제외) | 경고 |
 | Gmail 102KB(104,448B) 초과 위험: 언어별 본문 바이트 + 행당 바이트 × 예상 행 수 | 경고 |
 

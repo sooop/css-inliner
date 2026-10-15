@@ -1,6 +1,7 @@
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import { extractRowVars } from '../markup/compose';
+import { listBlocks } from '../markup/ids';
 import { findLinksMissingTarget } from '../markup/links';
 import type { Lang, VariableDef } from '../markup/types';
 import schema from '../../docs/bundle.schema.json';
@@ -163,6 +164,27 @@ function directTbodyMarkerRe(marker: string): RegExp {
   return new RegExp(`<tbody\\b[^>]*>\\s*${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*<\\/tbody\\s*>`, 'i');
 }
 
+/**
+ * `source`(재편집 원본) 정합: 발송 HTML(locales)은 브라우저 엔진 인라인 결과라 번들만으로 재생성·대조할 수 없으므로,
+ * 값으로 확인할 수 있는 것만 본다 — 메타(이름·코드·언어·변수)와 구조가 참조하는 문자열 ID 의 존재.
+ */
+function checkSource(b: Bundle, errors: string[]): void {
+  const s = b.source;
+  if (!s || typeof s !== 'object') return;
+  if (s.name !== b.name) errors.push('source.name 이 name 과 다릅니다');
+  if ((s.templateCode ?? undefined) !== (b.templateCode ?? undefined)) errors.push('source.templateCode 가 templateCode 와 다릅니다');
+  if (s.baseLang !== b.baseLang) errors.push('source.baseLang 이 baseLang 과 다릅니다');
+  if (!Array.isArray(s.langs) || !sameSet(s.langs, b.langs)) errors.push('source.langs 가 langs 와 다릅니다');
+  if (canonicalJson({ v: s.variables } as never) !== canonicalJson({ v: b.variables } as never)) errors.push('source.variables 가 variables 와 다릅니다');
+  const strings = s.strings && typeof s.strings === 'object' ? s.strings : {};
+  const refs = [
+    ...(typeof s.structure === 'string' ? listBlocks(s.structure) : []),
+    ...(Array.isArray(s.dynamicTables) ? s.dynamicTables.flatMap((t) => (typeof t?.rowStructure === 'string' ? listBlocks(t.rowStructure) : [])) : []),
+  ];
+  const missing = [...new Set(refs.map((r) => r.id))].filter((id) => !(id in strings));
+  if (missing.length) errors.push(`source 의 구조가 참조하는 문자열 ID 가 strings 에 없습니다: ${missing.slice(0, 5).join(', ')}`);
+}
+
 /** JSON Schema + 의미 검증(언어 키·표식 1회·tbody 직속 위치·행 변수) + 체크섬 재계산. */
 export function verifyBundle(input: unknown): VerifyResult {
   const errors: string[] = [];
@@ -207,6 +229,7 @@ export function verifyBundle(input: unknown): VerifyResult {
     const bad = findLinksMissingTarget(html);
     if (bad.length) errors.push(`${where} 에 target="_blank" rel="noopener noreferrer" 가 없는 링크가 ${bad.length}개 있습니다: ${bad[0]}`);
   }
+  checkSource(b, errors);
   if (computeChecksum(b) !== b.checksum) errors.push('checksum 불일치(내용이 변경되었거나 손상됨)');
   return { ok: errors.length === 0, errors };
 }
