@@ -1,0 +1,513 @@
+/* ==========================================================================
+   TracX Logis 메일 템플릿 — A안(프로스트) + 코발트 블루
+   시안(mail-designs.html)의 dA / tokA / PALS.cobalt 를 클래스 기반 CSS 로 옮긴 것.
+   산출물은 항상 인라인 스타일이다(css-converter 가 선언된 속성만 옮김).
+
+   원칙
+   - 미디어쿼리·CSS 임포트·웹폰트 없음 -> 어떤 renderWidth 에서도 결과가 같다.
+     (엔진은 CSS 텍스트에 임포트/폰트페이스 키워드가 있으면 주석 안이라도 web-font 경고를 내므로
+     주석에도 그 키워드를 쓰지 않는다.)
+   - `*` 리셋 없음: 모든 요소에 margin/padding 이 인라인으로 박히는 것을 막는다.
+     필요한 요소(p·h*·ul·table 등)가 자기 여백을 직접 선언한다.
+   - body 규칙 없음: 선언하면 엔진이 body 스타일을 래퍼로 승격시켜 군더더기가 생긴다.
+     폭 600px·배경은 셸(src/markup/shell.ts)의 표가 맡는다.
+   - 언어별 폰트는 래퍼의 lang 속성(셸의 .mail) 선택자로 전환한다.
+   - 둥근 모서리는 Outlook(Windows)에서 무시된다(깨지지 않음). 그래서 표·콜아웃은
+     border-collapse:separate + border-spacing:0 + overflow:hidden 으로 만든다(시안 방식).
+
+   [동적 표 행 템플릿 안전성 — 중요]
+   동적 표는 서버가 <tbody> 행을 만들고, 행 템플릿은 "예시 행 1개"를 인라인 변환해 얻은
+   <tr>…</tr> 한 줄이다(render.ts). 이 한 줄이 모든 행에 복제되므로 행 위치에 의존하는
+   선택자(:first-child·:last-child·:nth-child·+ 인접형제)를 셀에 쓰면 그 결과가 모든 행에
+   박제된다(예: 마지막 행이라 border-bottom:0 이 모든 행에 들어감). 따라서
+     - 가로형 표의 셀(.table-horizontal td)은 위치 선택자를 쓰지 않고 "클래스+자손"
+       선택자만 쓴다(행 구분선은 모든 td 의 border-top, 줄무늬 없음).
+     - 위치 선택자(:first-child 등)는 정적인 요소(th 모서리, 세로형 표, 콜아웃 첫 자식)에만 쓴다.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Design Tokens (코발트)
+   -------------------------------------------------------------------------- */
+:root {
+    /* Brand */
+    --acc:        #1D6FE0;   /* 포인트(버튼 면·인용 띠) */
+    --acc-d:      #1A64CE;   /* 흰 배경 위 텍스트용 포인트(링크·보조 버튼 글자) */
+    --on-acc:     #FFFFFF;
+    --ink:        #0F2A52;   /* 제목(네이비) */
+
+    /* 연한 면 / 선 */
+    --tint:       #EAF2FF;
+    --tint-2:     #DCE9FD;
+    --line:       #D0DEF2;
+    --line-soft:  #EAF0F9;   /* mix(line, #fff, .55) — 행 구분선 */
+    --dash:       #A0B1CA;   /* mix(line, ink, .25) — 이미지 박스 점선 */
+
+    /* Text — 푸른 회색(붉은 기 없음) */
+    --body:       #1F2D3D;
+    --sub:        #3E5468;
+    --muted:      #5A7590;
+    --on-callout: #14202B;   /* 콜아웃 안 문단 */
+
+    /* Callout — 팔레트 cobalt: [헤더 면, 배경, 헤더 글자, 안쪽 선, 본문 글자, 표 머리글 틴트] */
+    --info-hd:    #1D6FE0;  --info-bg:    #EAF2FF;  --info-hdtx:    #FFFFFF;  --info-bd:    #B9D0F2;  --info-tx:    #0F2A52;  --info-th:    #CDE0FB;
+    --warn-hd:    #F59E0B;  --warn-bg:    #FFF7E0;  --warn-hdtx:    #2B1A00;  --warn-bd:    #F8D88B;  --warn-tx:    #4A2E00;  --warn-th:    #FEEBC2;
+    --accent-hd:  #0E7C86;  --accent-bg:  #E5F5F6;  --accent-hdtx:  #FFFFFF;  --accent-bd:  #B2DADD;  --accent-tx:  #0B4F55;  --accent-th:  #C7E4E6;
+
+    /* Font stacks (시안 FONT) */
+    --font-ko:    'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif;
+    --font-en:    'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-ja:    'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', Arial, sans-serif;
+
+    --radius:     6px;
+}
+
+/* --------------------------------------------------------------------------
+   Language — 래퍼(.mail)의 lang 속성으로 폰트 스택 전환
+   lang 이 없거나 알 수 없으면 .mail 기본(ko)을 쓴다.
+   -------------------------------------------------------------------------- */
+.mail {
+    font-family: var(--font-ko);
+    font-size: 14px;
+    line-height: 25px;
+    color: var(--body);
+}
+[lang="ko"] { font-family: var(--font-ko); }
+[lang="en"] { font-family: var(--font-en); }
+[lang="ja"] { font-family: var(--font-ja); }
+
+/* --------------------------------------------------------------------------
+   Shell — 헤더 / 본문 / 푸터 (모두 표 기반, src/markup/shell.ts)
+   -------------------------------------------------------------------------- */
+.mail,
+.mail-container,
+.mail-header-row,
+.mail-footer-row {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.mail-outer {
+    padding: 0;
+    text-align: center;            /* 구형 클라이언트의 가운데 정렬 보조(align 속성과 함께) */
+}
+
+.mail-container {
+    width: 600px;
+    max-width: 100%;
+    margin: 0 auto;                /* 보조: 표 가운데 정렬의 본체는 셸의 align="center" 속성(Outlook 은 margin auto 를 무시) */
+    text-align: left;              /* 위 text-align:center 가 상속되지 않도록 */
+}
+
+.mail-header {
+    padding: 32px 32px 14px;
+    border-bottom: 1px solid var(--line);
+}
+
+.mail-logo {
+    padding: 0;
+    vertical-align: middle;
+}
+
+.mail-logo a {
+    text-decoration: none;
+}
+
+/* 이미지 차단 시 alt("TRACXLOGIS")가 로고 대신 보이도록 글자 스타일을 지정 */
+.logo {
+    display: block;
+    border: 0;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: var(--acc-d);
+    text-decoration: none;
+}
+
+.mail-tag {
+    padding: 0;
+    text-align: right;
+    vertical-align: middle;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 1px;
+    color: var(--muted);
+}
+
+.mail-body {
+    padding: 36px 32px 0;
+}
+
+.mail-content > :first-child {
+    margin-top: 0;
+}
+
+.mail-footer-wrap {
+    padding: 40px 32px 32px;
+}
+
+.mail-footer {
+    padding: 14px 0 0;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    line-height: 19px;
+    color: var(--muted);
+}
+
+.mail-footer p {
+    margin: 0;
+    font-size: 11px;
+    line-height: 19px;
+    color: var(--muted);
+}
+
+/* --------------------------------------------------------------------------
+   Typography
+   -------------------------------------------------------------------------- */
+h1 {
+    margin: 6px 0 0;
+    font-size: 27px;
+    line-height: 34px;
+    font-weight: bold;
+    color: var(--ink);
+}
+
+h1 + p {
+    margin-top: 14px;              /* 제목 아래 리드 문단 */
+}
+
+h2 {
+    margin: 34px 0 0;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--line);
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: bold;
+    color: var(--ink);
+}
+
+h3 {
+    margin: 22px 0 0;
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: bold;
+    color: var(--body);
+}
+
+p {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 25px;
+    color: var(--body);
+}
+
+strong { font-weight: bold; }
+em     { font-style: italic; }
+del    { color: var(--muted); text-decoration: line-through; }
+
+a {
+    color: var(--acc-d);
+    text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   Lists
+   -------------------------------------------------------------------------- */
+ul, ol {
+    margin: 10px 0 0;
+    padding: 0 0 0 22px;
+    font-size: 14px;
+    line-height: 24px;
+    color: var(--body);
+}
+ul { list-style-type: disc; }
+ol { list-style-type: decimal; }
+
+li {
+    margin: 0 0 5px;
+    padding: 0;
+}
+
+/* 중첩 목록 */
+li ul, li ol {
+    margin: 4px 0 0;
+    padding-left: 20px;
+}
+li ul { list-style-type: circle; }
+li ol { list-style-type: lower-alpha; }
+li li { margin-bottom: 2px; }
+
+/* --------------------------------------------------------------------------
+   Divider / Quote / Image box
+   -------------------------------------------------------------------------- */
+hr {
+    margin: 28px 0 0;
+    height: 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+}
+
+blockquote {
+    margin: 18px 0 0;
+    padding: 14px 18px;
+    border-left: 3px solid var(--acc);
+    border-radius: var(--radius);
+    background-color: var(--tint);
+}
+
+blockquote p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 25px;
+    font-style: italic;
+    color: var(--sub);
+}
+
+img {
+    border: 0;
+    max-width: 100%;
+}
+
+/* 이미지 자리(플레이스홀더) 박스 */
+.img-box {
+    margin: 18px 0 0;
+    padding: 60px 0;
+    border: 1px dashed var(--dash);
+    border-radius: var(--radius);
+    background-color: var(--tint-2);
+    text-align: center;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--sub);
+}
+
+/* --------------------------------------------------------------------------
+   Tables — 세로형(.table-vertical) / 가로형(.table-horizontal)
+   셀 스타일은 클래스+자손 선택자로만 건다(위 '동적 표' 주석 참고).
+   -------------------------------------------------------------------------- */
+.table-vertical,
+.table-horizontal {
+    width: 100%;
+    margin: 20px 0 0;
+    border: 1px solid var(--line);
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.table-horizontal { margin-top: 14px; }
+
+/* 가로형 */
+.table-horizontal th {
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: bottom;
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--ink);
+    background-color: var(--tint-2);
+}
+.table-horizontal thead th:first-child { border-radius: 5px 0 0 0; }
+.table-horizontal thead th:last-child  { border-radius: 0 5px 0 0; }
+
+/* 모든 행 공통: 위 구분선(마지막 행 예외 처리를 하지 않는다 -> 행 템플릿 복제에 안전) */
+.table-horizontal td {
+    padding: 9px 12px;
+    vertical-align: top;
+    font-size: 13px;
+    line-height: 19px;
+    color: var(--body);
+    border-top: 1px solid var(--line-soft);
+}
+
+/* 세로형 */
+.table-vertical th {
+    width: 32%;
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    font-size: 12px;
+    line-height: 20px;
+    font-weight: 600;
+    color: var(--sub);
+    background-color: var(--tint);
+    border-right: 1px solid var(--line);
+}
+.table-vertical td {
+    padding: 10px 14px;
+    vertical-align: top;
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--body);
+}
+.table-vertical tr + tr th,
+.table-vertical tr + tr td {
+    border-top: 1px solid var(--line-soft);
+}
+.table-vertical tr:first-child th { border-radius: 5px 0 0 0; }
+.table-vertical tr:last-child th  { border-radius: 0 0 0 5px; }
+
+/* --------------------------------------------------------------------------
+   Callouts — info(정보) / warn(경고) / accent(강조)
+   콜아웃 안 표는 회색 배경을 쓰지 않는다: 표 배경은 콜아웃 면 그대로(투명),
+   가로형 머리글만 같은 색상각의 한 단계 진한 틴트(--co-th).
+   헤더 띠(h3)는 콜아웃 안쪽 여백(위 3px·좌우 14px)을 음수 마진으로 덮어 가장자리까지 채운다
+   (Outlook 은 음수 마진을 무시해도 띠가 안쪽으로 들어간 채 정상 표시됨). 제목 없는 콜아웃은
+   첫 블록의 margin-top 10px + 위 패딩 3px = 13px 이 위 여백이 된다.
+   주의: 엔진은 shorthand(margin)와 longhand(margin-top)를 별개 키로 다뤄 longhand 가 항상 뒤에
+   출력된다(명시도와 무관). 그래서 longhand 규칙이 shorthand 규칙을 덮는 것은 안전하지만,
+   shorthand 로 longhand 를 되돌리려는 규칙(예: 첫 자식 margin-top:0 을 h3 의 margin 으로 재덮기)은 안 먹는다.
+   -------------------------------------------------------------------------- */
+.callout {
+    margin: 20px 0 0;
+    padding: 3px 14px 15px;
+    border: 1px solid var(--co-hd);
+    border-radius: var(--radius);
+    background-color: var(--co-bg);
+    overflow: hidden;
+}
+
+.callout-info {
+    --co-hd: var(--info-hd);   --co-bg: var(--info-bg);   --co-hdtx: var(--info-hdtx);
+    --co-bd: var(--info-bd);   --co-tx: var(--info-tx);   --co-th: var(--info-th);
+}
+.callout-warn {
+    --co-hd: var(--warn-hd);   --co-bg: var(--warn-bg);   --co-hdtx: var(--warn-hdtx);
+    --co-bd: var(--warn-bd);   --co-tx: var(--warn-tx);   --co-th: var(--warn-th);
+}
+.callout-accent {
+    --co-hd: var(--accent-hd); --co-bg: var(--accent-bg); --co-hdtx: var(--accent-hdtx);
+    --co-bd: var(--accent-bd); --co-tx: var(--accent-tx); --co-th: var(--accent-th);
+}
+
+.callout > h3:first-child {
+    margin: -3px -14px 0;
+    padding: 9px 14px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--co-hdtx);
+    background-color: var(--co-hd);
+}
+
+.callout > h3:first-child + * {
+    margin-top: 10px;              /* 띠 아래 첫 블록 */
+}
+
+.callout p {
+    font-size: 13px;
+    line-height: 22px;
+    color: var(--on-callout);
+}
+
+.callout ul, .callout ol {
+    color: var(--body);
+}
+
+.callout hr {
+    margin-top: 14px;
+    border-top-color: var(--co-bd);
+}
+
+.callout blockquote {
+    background-color: var(--co-th);
+    border-left-color: var(--co-hd);
+}
+
+/* 콜아웃 안 표 */
+.callout .table-vertical,
+.callout .table-horizontal {
+    margin-top: 12px;
+    border-color: var(--co-bd);
+    background-color: transparent;
+}
+.callout .table-vertical th {
+    width: 34%;
+    font-size: 12px;
+    color: var(--co-tx);
+    background-color: transparent;
+    border-right-color: var(--co-bd);
+}
+.callout .table-vertical td {
+    color: var(--co-tx);
+}
+.callout .table-vertical tr + tr th,
+.callout .table-vertical tr + tr td {
+    border-top-color: var(--co-bd);
+}
+.callout .table-horizontal th {
+    color: var(--co-tx);
+    background-color: var(--co-th);
+}
+.callout .table-horizontal td {
+    color: var(--co-tx);
+    border-top-color: var(--co-bd);
+}
+
+/* 반응형 래퍼(가로 스크롤). 미디어쿼리 대신 이것으로 좁은 화면에 대응한다. */
+.table-responsive {
+    margin: 20px 0 0;
+    overflow-x: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons — <p><a class="btn btn-*"> 또는 <p class="btn-group"><a …>…
+   flex/gap 대신 inline-block + margin(메일 호환). Outlook(Windows)은 a 의
+   padding/border-radius 를 일부 무시한다(링크는 동작).
+   -------------------------------------------------------------------------- */
+.btn-group {
+    margin-top: 10px;
+}
+
+.btn {
+    display: inline-block;
+    margin: 6px 8px 0 0;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: bold;
+    white-space: nowrap;
+    text-align: center;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: var(--acc);
+    border-color: var(--acc);
+    color: var(--on-acc);
+}
+.btn-secondary {
+    background-color: #FFFFFF;
+    border-color: var(--acc-d);
+    color: var(--acc-d);
+}
+.btn-outline {
+    background-color: #FFFFFF;
+    border-color: var(--acc);
+    color: var(--acc-d);
+}
+.btn-warn,
+.btn-ghost {
+    background-color: #FFFFFF;
+    border-color: var(--line);
+    color: var(--sub);
+}
+
+/* --------------------------------------------------------------------------
+   Utility
+   -------------------------------------------------------------------------- */
+.text-muted { color: var(--muted); }
+
+.mb-0  { margin-bottom: 0; }
+.mt-0  { margin-top: 0; }
+.mt-sm { margin-top: 10px; }
+.mt-md { margin-top: 18px; }
+.mt-lg { margin-top: 28px; }
+
+/* 미디어쿼리는 두지 않는다 — 이 템플릿의 산출물은 항상 인라인 스타일이고
+   인라인에는 미디어쿼리를 담을 수 없어 렌더 폭에 따라 결과만 달라진다.
+   폭 대응은 셸의 width:600px;max-width:100% 와 표의 width 백분율이 맡는다. */
