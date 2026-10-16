@@ -20,25 +20,25 @@ export function initUIController() {
  * 드롭다운 메뉴 초기화
  */
 function initDropdown() {
-  const dropdown = document.querySelector('.dropdown');
-  const trigger = document.getElementById('templateDropdownBtn');
+  const dropdowns = document.querySelectorAll('.dropdown');
+  const closeAll = () => dropdowns.forEach(d => d.classList.remove('active'));
 
-  trigger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdown.classList.toggle('active');
+  dropdowns.forEach(dropdown => {
+    dropdown.querySelector('.dropdown-trigger').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasActive = dropdown.classList.contains('active');
+      closeAll();
+      dropdown.classList.toggle('active', !wasActive);
+    });
+
+    // 메뉴 항목은 동적으로 추가되므로 위임으로 처리
+    dropdown.querySelector('.dropdown-menu').addEventListener('click', (e) => {
+      if (e.target.closest('button')) closeAll();
+    });
   });
 
   // 외부 클릭 시 닫기
-  document.addEventListener('click', () => {
-    dropdown.classList.remove('active');
-  });
-
-  // 메뉴 내부 클릭 시 닫기
-  dropdown.querySelectorAll('.dropdown-menu button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      dropdown.classList.remove('active');
-    });
-  });
+  document.addEventListener('click', closeAll);
 }
 
 /**
@@ -200,6 +200,10 @@ export async function openHistoryModal(loadHistoryListFn, loadHistoryItemFn, del
           if (options.wrapBody !== undefined) {
             document.getElementById('wrapBody').checked = options.wrapBody;
             localStorage.setItem('wrap-body', options.wrapBody);
+          }
+          if (options.newTabLinks !== undefined) {
+            document.getElementById('newTabLinks').checked = options.newTabLinks;
+            localStorage.setItem('new-tab-links', options.newTabLinks);
           }
           if (options.mailSafeLayout !== undefined) {
             document.getElementById('mailSafeLayout').checked = options.mailSafeLayout;
@@ -389,6 +393,9 @@ function switchTab(tabName) {
   });
   document.querySelectorAll('.tab-content').forEach(content => {
     content.classList.toggle('active', content.id === tabName);
+  });
+  document.querySelectorAll('.tab-actions-group').forEach(group => {
+    group.hidden = group.dataset.for !== tabName;
   });
 }
 

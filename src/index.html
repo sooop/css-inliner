@@ -32,6 +32,10 @@
                     <button id="copyTemplateBtn">복사</button>
                 </div>
             </div>
+            <div class="dropdown">
+                <button class="dropdown-trigger">샘플 ▾</button>
+                <div class="dropdown-menu" id="sampleMenu"></div>
+            </div>
             <label class="css-toggle">
                 <input type="checkbox" id="useBuiltInCSS" checked>
                 내장 CSS 사용
@@ -49,10 +53,11 @@
                             <label><input type="checkbox" id="removeWhitespace"> 공백 제거</label>
                             <label><input type="checkbox" id="bodyOnly"> Body Only</label>
                             <label title="body에 걸린 폭 제한·바깥 여백·배경을 래퍼로 옮겨 보존합니다"><input type="checkbox" id="wrapBody" checked> 본문 래퍼</label>
+                            <label title="target 이 없는 링크·버튼(a[href])에 target=&quot;_blank&quot;를 추가합니다. #앵커·mailto·tel 은 제외"><input type="checkbox" id="newTabLinks" checked> 링크 새 창</label>
                             <label title="flex/grid를 block 기반으로 낮추고 애니메이션 속성을 제거합니다 — Outlook 데스크톱 대응"><input type="checkbox" id="mailSafeLayout"> 메일 호환 레이아웃</label>
-                            <label class="width-field" title="변환 시 실제로 렌더링할 폭. 미디어쿼리 평가 기준이며 미리보기도 같은 폭으로 표시됩니다">
+                            <label class="width-field" title="콘텐츠 폭. 미리보기에는 좌우 고정 여백이 따로 붙고, 폭 값은 본문 블록의 폭을 따릅니다">
                                 폭
-                                <input type="number" id="renderWidth" min="320" max="1600" step="20" value="1000">
+                                <input type="number" id="renderWidth" min="320" max="1600" step="20" value="600">
                                 px
                             </label>
                             <div class="profile-toggle" id="profileToggle" role="group" aria-label="출력 대상">
@@ -86,15 +91,21 @@
                         <button class="tab active" data-tab="inline-preview" role="tab" id="tab-inline-preview" aria-selected="true" aria-controls="inline-preview">인라인 미리보기</button>
                         <button class="tab" data-tab="preview" role="tab" id="tab-preview" aria-selected="false" aria-controls="preview">스타일 미리보기</button>
                         <button class="tab" data-tab="code" role="tab" id="tab-code" aria-selected="false" aria-controls="code">인라인 코드</button>
+                        <div class="tab-actions">
+                            <div class="tab-actions-group" data-for="inline-preview">
+                                <button id="copyInlinePreviewBtn">복사</button>
+                            </div>
+                            <div class="tab-actions-group" data-for="preview" hidden>
+                                <button id="copyPreviewBtn">복사</button>
+                            </div>
+                            <div class="tab-actions-group" data-for="code" hidden>
+                                <button id="downloadCodeBtn">다운로드</button>
+                                <button id="copyCodeBtn">복사</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="inline-preview" class="tab-content active" role="tabpanel" aria-labelledby="tab-inline-preview">
-                        <div class="panel-header">
-                            <span>인라인 미리보기</span>
-                            <div class="panel-actions">
-                                <button id="copyInlinePreviewBtn">복사</button>
-                            </div>
-                        </div>
                         <div class="frame-wrapper">
                             <iframe id="inlinePreviewFrame" class="preview-frame"></iframe>
                             <div class="tab-empty-state" id="emptyInlinePreview">
@@ -105,12 +116,6 @@
                     </div>
 
                     <div id="preview" class="tab-content" role="tabpanel" aria-labelledby="tab-preview">
-                        <div class="panel-header">
-                            <span>스타일 미리보기</span>
-                            <div class="panel-actions">
-                                <button id="copyPreviewBtn">복사</button>
-                            </div>
-                        </div>
                         <div class="frame-wrapper">
                             <iframe id="previewFrame" class="preview-frame"></iframe>
                             <div class="tab-empty-state" id="emptyPreview">
@@ -121,13 +126,6 @@
                     </div>
 
                     <div id="code" class="tab-content" role="tabpanel" aria-labelledby="tab-code">
-                        <div class="panel-header">
-                            <span>인라인 HTML</span>
-                            <div class="panel-actions">
-                                <button id="downloadCodeBtn">다운로드</button>
-                                <button id="copyCodeBtn">복사</button>
-                            </div>
-                        </div>
                         <pre id="inlineCode"><div class="empty-state">변환 버튼을 클릭하여 결과를 생성하세요</div></pre>
                     </div>
                 </div>

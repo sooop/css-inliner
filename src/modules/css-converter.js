@@ -11,12 +11,19 @@ import {
 /**
  * 인라인 변환 기본값.
  *
- * renderWidth: 변환용 iframe의 실제 렌더 폭. 미디어쿼리 평가 기준이자
- *   미리보기와 결과를 일치시키는 기준이 된다(미리보기도 같은 폭으로 렌더).
- *   인라인 스타일에는 미디어쿼리를 담을 수 없으므로, 좁은 폭에서 변환해
- *   모바일 분기를 굳혀 버리는 사고를 막도록 넉넉한 폭을 기본값으로 둔다.
+ * renderWidth: 콘텐츠 폭(본문 블록의 바깥 폭). 변환·미리보기 iframe은 여기에
+ *   좌우 고정 여백(PREVIEW_GUTTER)을 더한 폭으로 렌더되므로, 폭을 바꿔도 여백은
+ *   일정하고 콘텐츠만 늘고 준다. 미디어쿼리 평가 기준이기도 하다.
  */
-export const DEFAULT_RENDER_WIDTH = 1000;
+export const DEFAULT_RENDER_WIDTH = 600;
+
+/** 미리보기 좌우 고정 여백(px) */
+export const PREVIEW_GUTTER = 24;
+
+/** 콘텐츠 폭에 좌우 여백을 더한 실제 iframe 폭 */
+export function previewViewportWidth(renderWidth) {
+  return renderWidth + PREVIEW_GUTTER * 2;
+}
 
 /** 브라우저가 렌더를 마칠 때까지 기다리는 리소스 대기 상한(ms) */
 const RESOURCE_TIMEOUT = 4000;
@@ -258,6 +265,16 @@ function buildDeclarationMap(doc, rules, warnings) {
     for (const { prop, value, important } of parseDeclarations(el.getAttribute('style'))) {
       put(el, prop, value, important, 1e6, 1e9);
     }
+  }
+
+  // 결과 style 문자열은 뒤에 적힌 선언이 이긴다. shorthand(margin)와 longhand(margin-top)는
+  // 서로 다른 키라서 삽입 순서대로 내보내면 `h1 + p`의 margin-top 이 `p`의 margin 에 덮여 버린다.
+  // 캐스케이드 우선순위 오름차순으로 다시 정렬해 낮은 쪽이 먼저 오게 한다(동률은 기존 순서 유지).
+  for (const [el, props] of map) {
+    const sorted = [...props].sort(
+      ([, a], [, b]) => (a.important - b.important) || (a.spec - b.spec) || (a.order - b.order)
+    );
+    map.set(el, new Map(sorted));
   }
 
   if (seen.pseudoElement.size) {
@@ -701,14 +718,15 @@ export async function convertToInline(html, css, options = {}) {
     profile = 'email',
     renderWidth = DEFAULT_RENDER_WIDTH,
     wrapBody = true,
-    mailSafeLayout = false
+    mailSafeLayout = false,
+    newTabLinks = true
   } = options;
 
   const warnings = [];
   const fullDocument = isFullDocument(html);
   const shouldReturnBodyOnly = bodyOnly || !fullDocument;
 
-  const { frame, doc } = createRenderFrame(renderWidth);
+  const { frame, doc } = createRenderFrame(previewViewportWidth(renderWidth));
   const win = frame.contentWindow;
 
   try {
@@ -746,6 +764,7 @@ export async function convertToInline(html, css, options = {}) {
       }
     }
     doc.body.innerHTML = htmlToConvert;
+    if (newTabLinks) addTargetBlank(doc);
 
     await waitForResources(frame, doc);
     doc.body.offsetHeight; // 강제 리플로우
@@ -899,15 +918,56 @@ export async function convertToInline(html, css, options = {}) {
 }
 
 /**
- * 미리보기 생성 (외부 CSS 적용)
+ * 링크·버튼(a[href])이 항상 새 창으로 열리도록 target="_blank"를 채운다.
+ * 원문에 target이 있으면 존중하고, 같은 문서 앵커·mailto·tel·javascript 는 건드리지 않는다.
  */
-export function createPreview(html, css) {
+function addTargetBlank(doc) {
+  for (const a of doc.querySelectorAll('a[href]')) {
+    if (a.hasAttribute('target')) continue;
+    const href = a.getAttribute('href').trim();
+    if (!href || href.startsWith('#') || /^(mailto|tel|sms|javascript):/i.test(href)) continue;
+    a.setAttribute('target', '_blank');
+  }
+}
+
+/** 미리보기 iframe 안에서 콘텐츠 폭과 좌우 여백을 맞추는 CSS */
+function previewLayoutCSS(contentWidth, wrapperSelector) {
+  const wrapper = wrapperSelector
+    ? `${wrapperSelector}{box-sizing:border-box!important;max-width:${contentWidth}px!important;}`
+    : '';
+  return `html{padding:0 ${PREVIEW_GUTTER}px;}${wrapper}`;
+}
+
+/**
+ * 미리보기 생성 (외부 CSS 적용)
+ * contentWidth를 주면 본문 블록 폭을 그 값에 맞추고 좌우에 고정 여백을 둔다.
+ */
+export function createPreview(html, css, contentWidth = 0) {
+  const layout = contentWidth
+    ? `<style>${previewLayoutCSS(contentWidth, '')}body{box-sizing:border-box;max-width:${contentWidth}px;margin:0 auto;}</style>`
+    : '';
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>${css}</style>
+${layout}
 </head>
 <body>${html}</body>
 </html>`;
+}
+
+/**
+ * 인라인 결과 미리보기 문서를 만든다. 래퍼(이메일 table>td>div, 웹 div)가 있으면
+ * 그 폭을 콘텐츠 폭에 맞춘다. 미리보기에서만 덮어쓰며 결과 HTML 은 바뀌지 않는다.
+ */
+export function createInlinePreview(result, contentWidth, { hasWrapper = true } = {}) {
+  const selector = hasWrapper
+    ? 'body>table[role=presentation]>tbody>tr>td>div,body>div:first-child'
+    : '';
+  const layout = `<style>${previewLayoutCSS(contentWidth, selector)}body{margin:0;}</style>`;
+  if (!result.trim().toLowerCase().startsWith('<!doctype')) {
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8">${layout}</head><body style="margin:0">${result}</body></html>`;
+  }
+  return /<\/head>/i.test(result) ? result.replace(/<\/head>/i, `${layout}</head>`) : layout + result;
 }

@@ -1,521 +1,467 @@
 /* ==========================================================================
-   SmartShip Notice Stylesheet — Structured Authority
-   TracX Logis / tx-html-generator template.css
+   TracX Logis 기본 템플릿 — 프로스트 + 코발트 블루
+   email-studio 의 메일 템플릿(src/styles/template.css) 디자인을 이 도구의
+   범용 문서 마크업(header / main / footer, 표, 콜아웃, 버튼)에 맞게 옮긴 것.
+
+   원칙
+   - 미디어쿼리·외부 CSS 로드·웹폰트 로드 없음(Pretendard 는 설치된 경우에만 적용되고 없으면 시스템 폰트로 대체) -> 어떤 renderWidth 에서도 결과가 같다.
+     (엔진은 CSS 텍스트에 해당 키워드가 있으면 주석 안이라도 web-font 경고를 내므로
+     주석에도 그 키워드를 쓰지 않는다.)
+   - `*` 리셋 없음: 모든 요소에 margin/padding 이 인라인으로 박히는 것을 막는다.
+     p·h*·ul·table 등은 자기 여백을 직접 선언한다.
+   - 언어별 폰트는 :lang() 로 전환한다(<html lang>·<body lang> 모두 상속 매칭).
+   - 둥근 모서리는 Outlook(Windows)에서 무시된다(깨지지 않음). 표·콜아웃은
+     border-collapse:separate + border-spacing:0 + overflow:hidden 으로 만든다.
+   - hover 등 상태 스타일은 인라인에 담을 수 없어 두지 않는다.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Noto+Sans+KR:wght@300;400;500;600&display=swap');
-
 /* --------------------------------------------------------------------------
-   Design Tokens
+   Design Tokens (코발트)
    -------------------------------------------------------------------------- */
 :root {
-    /* Brand — Nordic Frost */
-    --primary:               #2B4C6F;
-    --secondary:             #5B84A6;
+    /* Brand */
+    --acc:        #1D6FE0;   /* 포인트(버튼 면) */
+    --acc-d:      #1A64CE;   /* 흰 배경 위 텍스트용 포인트(링크·보조 버튼 글자) */
+    --on-acc:     #FFFFFF;
+    --ink:        #0F2A52;   /* 제목(네이비) */
 
-    /* Text */
-    --text-primary:          #22303D;
-    --text-secondary:        #455562;
-    --text-muted:            #7C8E9A;
+    /* 연한 면 / 선 */
+    --tint:       #EAF2FF;
+    --tint-2:     #DCE9FD;
+    --line:       #D0DEF2;
+    --line-soft:  #EAF0F9;   /* 행 구분선 */
 
-    /* Background */
-    --bg:                    #FFFFFF;
-    --bg-subtle:             #F8F9FA;
-    --bg-ink:                #2B4C6F;
+    /* Text — 푸른 회색(붉은 기 없음) */
+    --body:       #1F2D3D;
+    --sub:        #3E5468;
+    --muted:      #5A7590;
+    --on-callout: #14202B;
 
-    /* Border */
-    --border:                rgba(43, 76, 111, 0.075);
-    --border-strong:         rgba(43, 76, 111, 0.150);
+    /* Callout — [헤더 면, 배경, 헤더 글자, 안쪽 선, 본문 글자, 표 머리글 틴트] */
+    --info-hd:    #1D6FE0;  --info-bg:    #EAF2FF;  --info-hdtx:    #FFFFFF;  --info-bd:    #B9D0F2;  --info-tx:    #0F2A52;  --info-th:    #CDE0FB;
+    --warn-hd:    #F59E0B;  --warn-bg:    #FFF7E0;  --warn-hdtx:    #2B1A00;  --warn-bd:    #F8D88B;  --warn-tx:    #4A2E00;  --warn-th:    #FEEBC2;
+    --danger-hd:  #D93A1F;  --danger-bg:  #FDEEEA;  --danger-hdtx:  #FFFFFF;  --danger-bd:  #F3BDB1;  --danger-tx:  #5C1608;  --danger-th:  #FADBD3;
+    --accent-hd:  #0E7C86;  --accent-bg:  #E5F5F6;  --accent-hdtx:  #FFFFFF;  --accent-bd:  #B2DADD;  --accent-tx:  #0B4F55;  --accent-th:  #C7E4E6;
 
-    /* Callout Semantic Colors */
-    --callout-info-color:    #368EED;
-    --callout-info-bg:       #DBE3EB;
-    --callout-warn-color:    #F57A00;
-    --callout-warn-bg:       #F1E9E2;
-    --callout-danger-color:  #ED3507;
-    --callout-danger-bg:     rgba(237, 53, 7, 0.12);
-    --callout-accent-color:  #28AE6B;
-    --callout-accent-bg:     #ECF3F0;
-
-    /* Callout title/label text color — 배경색 대비 흰 글자보다 어두운 글자가
-       더 잘 읽히는 변형(밝은 호박색·초록 계열)만 따로 지정 */
-    --callout-info-label:    #1A1A1A;
-    --callout-warn-label:    #1A1A1A;
-    --callout-danger-label:  #fff;
-    --callout-accent-label:  #1A1A1A;
-
-    /* Typography */
-    --font:                  'Pretendard', -apple-system, 'Noto Sans KR', sans-serif;
-    --font-size:             14px;
-    --lh:                    1.75;
+    /* Font stacks */
+    --font-ko:    'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif;
+    --font-en:    'Pretendard Variable', Pretendard, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-ja:    'Pretendard Variable', Pretendard, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', Arial, sans-serif;
 
     /* Heading scale — 이메일 기본값. 웹 프로파일에서는
-       template-manager.js의 getWebOverridesCSS()가 더 작은 값으로 덮어쓴다 */
-    --h1-size:               27px;
-    --h2-size:               17.5px;
-    --h3-size:               16.5px;
+       template-manager.js 의 getWebOverridesCSS() 가 더 작은 값으로 덮어쓴다 */
+    --h1-size:    27px;
+    --h2-size:    17px;
+    --h3-size:    15px;
 
-    /* Table header tint (표 헤더: 프라이머리 틴트 배경 + 프라이머리 글자) */
-    --th-tint-bg:            rgba(43, 76, 111, 0.150);
-
-    /* Radius */
-    --radius:                6px;
-
-    /* Spacing */
-    --sp-xs:   0.360rem;
-    --sp-sm:   0.600rem;
-    --sp-md:   1.080rem;
-    --sp-lg:   1.800rem;
-    --sp-xl:   2.400rem;
-    --sp-2xl:  3.840rem;
-
-    /* Legacy aliases */
-    --primary-main:          var(--primary);
-    --secondary-main:        var(--secondary);
-    --text-disabled:         #CCCCCC;
-    --border-main:           rgba(43, 76, 111, 0.15);
-    --surface-hover:         #F2F4F6;
+    --radius:     6px;
 }
 
 /* --------------------------------------------------------------------------
-   Reset
-   -------------------------------------------------------------------------- */
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-/* --------------------------------------------------------------------------
-   Base
+   Base — body 규칙은 변환 시 래퍼로 승격된다(이메일: table>td>div, 웹: div)
    -------------------------------------------------------------------------- */
 body {
-    font-family: var(--font);
-    font-size: var(--font-size);
-    font-weight: 400;
-    line-height: var(--lh);
-    color: var(--text-primary);
-    background-color: var(--bg);
-    max-width: 800px;
+    max-width: 600px;
     margin: 0 auto;
-    padding: var(--sp-2xl) var(--sp-xl);
-    -webkit-font-smoothing: antialiased;
+    padding: 36px 32px 32px;
+    font-family: var(--font-ko);
+    font-size: 14px;
+    line-height: 25px;
+    color: var(--body);
+    background-color: #FFFFFF;
 }
+body:lang(en) { font-family: var(--font-en); }
+body:lang(ja) { font-family: var(--font-ja); }
 
 main {
-    max-width: 800px;
+    display: block;
 }
 
 /* --------------------------------------------------------------------------
-   Header
+   Header / Footer
    -------------------------------------------------------------------------- */
 header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--sp-2xl);
-    padding-bottom: var(--sp-md);
-    border-bottom: 1px solid var(--border-strong);
+    margin: 0 0 28px;
+    padding: 0 0 14px;
+    border-bottom: 1px solid var(--line);
 }
 
 .logo {
-    font-size: 0.8rem;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    color: var(--primary);
-    text-decoration: none;
     display: inline-block;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: var(--acc-d);
+    text-decoration: none;
 }
 
 .doc-type {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    letter-spacing: 0.1em;
-    font-weight: 500;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 1px;
+    color: var(--muted);
+}
+
+.doc-meta {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--muted);
+}
+
+footer {
+    margin: 40px 0 0;
+    padding: 14px 0 0;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    line-height: 19px;
+    color: var(--muted);
+}
+
+footer p {
+    margin: 0;
+    font-size: 11px;
+    line-height: 19px;
+    color: var(--muted);
 }
 
 /* --------------------------------------------------------------------------
    Typography
    -------------------------------------------------------------------------- */
 h1 {
+    margin: 6px 0 0;
     font-size: var(--h1-size);
-    font-weight: 600;
-    color: var(--primary);
-    line-height: 1.15;
-    letter-spacing: -0.025em;
-    margin-bottom: var(--sp-sm);
+    line-height: 34px;
+    font-weight: bold;
+    color: var(--ink);
 }
 
-.doc-meta {
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    margin-bottom: var(--sp-lg);
-    letter-spacing: 0.01em;
+h1 + p {
+    margin-top: 14px;              /* 제목 아래 리드 문단 */
 }
 
-/* 섹션 구분 — 상단 accent bar로 존재감 확보 */
 h2 {
+    margin: 34px 0 0;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--line);
     font-size: var(--h2-size);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--primary);
-    margin-top: var(--sp-2xl);
-    margin-bottom: var(--sp-md);
-    padding-top: var(--sp-sm);
-    border-top: 1px solid var(--border-strong);
-    line-height: 1.3;
+    line-height: 24px;
+    font-weight: bold;
+    color: var(--ink);
 }
 
 h3 {
+    margin: 22px 0 0;
     font-size: var(--h3-size);
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-    margin-top: var(--sp-lg);
-    margin-bottom: var(--sp-xs);
-    line-height: 1.4;
+    line-height: 22px;
+    font-weight: bold;
+    color: var(--body);
 }
 
 p {
-    margin-bottom: var(--sp-md);
-    color: var(--text-primary);
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 25px;
+    color: var(--body);
 }
 
-/* --------------------------------------------------------------------------
-   Links
-   -------------------------------------------------------------------------- */
+strong { font-weight: bold; }
+em     { font-style: italic; }
+del    { color: var(--muted); text-decoration: line-through; }
+
 a {
-    color: var(--secondary);
+    color: var(--acc-d);
     text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
-}
-
-a:hover {
-    color: var(--primary);
 }
 
 /* --------------------------------------------------------------------------
    Lists
    -------------------------------------------------------------------------- */
 ul, ol {
-    padding-left: var(--sp-lg);
-    margin-bottom: var(--sp-md);
+    margin: 10px 0 0;
+    padding: 0 0 0 22px;
+    font-size: 14px;
+    line-height: 24px;
+    color: var(--body);
 }
+ul { list-style-type: disc; }
+ol { list-style-type: decimal; }
 
 li {
-    margin-bottom: var(--sp-xs);
-    color: var(--text-primary);
-}
-
-ul ul, ul ol, ol ul, ol ol {
-    margin-top: var(--sp-xs);
-    margin-bottom: 0;
-}
-
-/* --------------------------------------------------------------------------
-   Callouts
-   -------------------------------------------------------------------------- */
-.callout {
-    margin: var(--sp-lg) 0;
+    margin: 0 0 5px;
     padding: 0;
-    background: var(--bg-subtle);
-    border: 1px solid var(--border-strong);
+}
+
+li ul, li ol {
+    margin: 4px 0 0;
+    padding-left: 20px;
+}
+li ul { list-style-type: circle; }
+li ol { list-style-type: lower-alpha; }
+li li { margin-bottom: 2px; }
+
+/* --------------------------------------------------------------------------
+   Divider / Quote / Image
+   -------------------------------------------------------------------------- */
+hr {
+    margin: 28px 0 0;
+    height: 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+}
+
+blockquote {
+    margin: 18px 0 0;
+    padding: 18px 22px;
+    border: 0;
     border-radius: var(--radius);
-    font-size: 0.875rem;
-    overflow: hidden;
+    background-color: var(--tint);
 }
 
-/* 타이틀 바 */
-.callout h3 {
+blockquote p {
     margin: 0;
-    padding: var(--sp-sm) var(--sp-md);
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    color: #fff;
-    background: var(--text-secondary);
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 25px;
+    text-align: center;
+    color: var(--sub);
 }
 
-.callout p,
-.callout ul,
-.callout ol {
-    margin: 0;
-    padding: var(--sp-sm) var(--sp-md) var(--sp-md);
-    color: var(--text-secondary);
-}
-
-.callout p:not(:last-child),
-.callout ul:not(:last-child),
-.callout ol:not(:last-child) {
-    margin-bottom: 0;
-}
-
-.callout-label {
-    display: block;
-    padding: var(--sp-sm) var(--sp-md);
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    color: #fff;
-    background: var(--text-secondary);
-}
-
-/* Callout Variants */
-.callout-info {
-    border-color: var(--callout-info-color);
-    background: var(--callout-info-bg);
-}
-.callout-info h3,
-.callout-info .callout-label {
-    background: var(--callout-info-color);
-    color: var(--callout-info-label);
-}
-
-.callout-warn {
-    border-color: var(--callout-warn-color);
-    background: var(--callout-warn-bg);
-}
-.callout-warn h3,
-.callout-warn .callout-label {
-    background: var(--callout-warn-color);
-    color: var(--callout-warn-label);
-}
-
-.callout-danger {
-    border-color: var(--callout-danger-color);
-    background: var(--callout-danger-bg);
-}
-.callout-danger h3,
-.callout-danger .callout-label {
-    background: var(--callout-danger-color);
-    color: var(--callout-danger-label);
-}
-
-.callout-accent {
-    border-color: var(--callout-accent-color);
-    background: var(--callout-accent-bg);
-}
-.callout-accent h3,
-.callout-accent .callout-label {
-    background: var(--callout-accent-color);
-    color: var(--callout-accent-label);
+img {
+    border: 0;
+    max-width: 100%;
 }
 
 /* --------------------------------------------------------------------------
-   Tables
+   Tables — 기본(가로형) / .table-vertical(세로형)
+   클래스 없는 표도 가로형으로 보이도록 요소 선택자로 기본값을 둔다.
    -------------------------------------------------------------------------- */
 table {
     width: 100%;
+    margin: 20px 0 0;
+    border: 1px solid var(--line);
     border-collapse: separate;
     border-spacing: 0;
-    margin: var(--sp-md) 0 var(--sp-lg);
-    font-size: 0.875rem;
-    border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     overflow: hidden;
-}
-
-/* 가로형: 프라이머리 틴트 헤더 */
-thead tr {
-    background: var(--th-tint-bg);
 }
 
 th {
-    padding: var(--sp-sm) var(--sp-md);
+    padding: 8px 12px;
     text-align: left;
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.07em;
-    color: var(--primary);
-    border: none;
-    border-bottom: 1px solid var(--border-strong);
+    vertical-align: bottom;
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--ink);
+    background-color: var(--tint-2);
 }
-
-/* 가로형 thead 모서리 */
-thead th:first-child { border-radius: calc(var(--radius) - 1px) 0 0 0; }
-thead th:last-child  { border-radius: 0 calc(var(--radius) - 1px) 0 0; }
+thead th:first-child { border-radius: 5px 0 0 0; }
+thead th:last-child  { border-radius: 0 5px 0 0; }
 
 td {
-    padding: var(--sp-sm) var(--sp-md);
-    color: var(--text-primary);
+    padding: 9px 12px;
     vertical-align: top;
-    border: none;
-    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 19px;
+    color: var(--body);
+    border-top: 1px solid var(--line-soft);
 }
+/* 머리글 행이 없는 표의 첫 행은 표 테두리와 겹치지 않도록 */
+table > tbody:first-child > tr:first-child > td { border-top: 0; }
 
-tbody tr:last-child td {
-    border-bottom: none;
+/* 세로형 */
+.table-vertical th {
+    width: 32%;
+    padding: 10px 14px;
+    vertical-align: top;
+    font-size: 12px;
+    line-height: 20px;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--sub);
+    background-color: var(--tint);
+    border-right: 1px solid var(--line);
 }
-
-tbody tr:hover td {
-    background: var(--surface-hover);
+.table-vertical td {
+    padding: 10px 14px;
+    line-height: 20px;
 }
+.table-vertical tr + tr th {
+    border-top: 1px solid var(--line-soft);
+}
+.table-vertical tr:first-child th { border-radius: 5px 0 0 0; }
+.table-vertical tr:last-child th  { border-radius: 0 0 0 5px; }
 
-/* 세로형 테이블 */
-.table-vertical {
-    border: 1px solid var(--border-strong);
+/* 반응형 래퍼(가로 스크롤). 미디어쿼리 대신 이것으로 좁은 화면에 대응한다. */
+.table-responsive {
+    margin: 20px 0 0;
+    overflow-x: auto;
+}
+.table-responsive > table { margin-top: 0; }
+
+/* --------------------------------------------------------------------------
+   Callouts — info / warn / danger / accent
+   헤더 띠(h3)는 콜아웃 안쪽 여백을 음수 마진으로 덮어 가장자리까지 채운다.
+   표·인용은 콜아웃 면 색을 따른다(--co-*).
+   -------------------------------------------------------------------------- */
+.callout {
+    margin: 20px 0 0;
+    padding: 3px 14px 15px;
+    border: 1px solid var(--co-hd, var(--info-hd));
     border-radius: var(--radius);
+    background-color: var(--co-bg, var(--info-bg));
     overflow: hidden;
 }
 
-.table-vertical th {
-    width: 32%;
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.03em;
-    background: var(--bg-subtle);
-    border-bottom: 1px solid var(--border);
-    border-right: 1px solid var(--border-strong);
+.callout-info {
+    --co-hd: var(--info-hd);     --co-bg: var(--info-bg);     --co-hdtx: var(--info-hdtx);
+    --co-bd: var(--info-bd);     --co-tx: var(--info-tx);     --co-th: var(--info-th);
+}
+.callout-warn {
+    --co-hd: var(--warn-hd);     --co-bg: var(--warn-bg);     --co-hdtx: var(--warn-hdtx);
+    --co-bd: var(--warn-bd);     --co-tx: var(--warn-tx);     --co-th: var(--warn-th);
+}
+.callout-danger {
+    --co-hd: var(--danger-hd);   --co-bg: var(--danger-bg);   --co-hdtx: var(--danger-hdtx);
+    --co-bd: var(--danger-bd);   --co-tx: var(--danger-tx);   --co-th: var(--danger-th);
+}
+.callout-accent {
+    --co-hd: var(--accent-hd);   --co-bg: var(--accent-bg);   --co-hdtx: var(--accent-hdtx);
+    --co-bd: var(--accent-bd);   --co-tx: var(--accent-tx);   --co-th: var(--accent-th);
 }
 
-.table-vertical td {
-    border-bottom: 1px solid var(--border);
+.callout > h3:first-child {
+    margin: -3px -14px 0;
+    padding: 9px 14px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--co-hdtx, var(--info-hdtx));
+    background-color: var(--co-hd, var(--info-hd));
 }
 
-.table-vertical tr:last-child th,
-.table-vertical tr:last-child td {
-    border-bottom: none;
+.callout > h3:first-child + * {
+    margin-top: 10px;              /* 띠 아래 첫 블록 */
 }
 
-/* 세로형 첫 번째 행 모서리 */
-.table-vertical tr:first-child th { border-radius: calc(var(--radius) - 1px) 0 0 0; }
-.table-vertical tr:first-child td { border-radius: 0 calc(var(--radius) - 1px) 0 0; }
-
-/* 세로형 마지막 행 모서리 */
-.table-vertical tr:last-child th  { border-radius: 0 0 0 calc(var(--radius) - 1px); }
-.table-vertical tr:last-child td  { border-radius: 0 0 calc(var(--radius) - 1px) 0; }
-
-/* 반응형 */
-.table-responsive {
-    overflow-x: auto;
-    margin: var(--sp-lg) 0;
+/* h3 대신 쓰는 라벨형 제목 */
+.callout-label {
+    display: block;
+    margin: -3px -14px 0;
+    padding: 9px 14px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: var(--co-hdtx, var(--info-hdtx));
+    background-color: var(--co-hd, var(--info-hd));
 }
 
-/* 미디어쿼리는 두지 않는다 — 이 템플릿의 산출물은 항상 인라인 스타일이고,
-   인라인에는 미디어쿼리를 담을 수 없어 렌더 폭에 따라 결과만 달라진다.
-   표는 width 백분율과 .table-responsive(가로 스크롤)로 폭에 대응한다. */
+.callout p {
+    font-size: 13px;
+    line-height: 22px;
+    color: var(--on-callout);
+}
+
+.callout ul, .callout ol {
+    color: var(--body);
+}
+
+.callout hr {
+    margin-top: 14px;
+    border-top-color: var(--co-bd, var(--info-bd));
+}
+
+.callout blockquote {
+    background-color: var(--co-th, var(--info-th));
+}
+
+/* 콜아웃 안 표: 배경은 콜아웃 면 그대로, 머리글만 한 단계 진한 틴트 */
+.callout table {
+    margin-top: 12px;
+    border-color: var(--co-bd, var(--info-bd));
+    background-color: transparent;
+}
+.callout th {
+    color: var(--co-tx, var(--info-tx));
+    background-color: var(--co-th, var(--info-th));
+}
+.callout td {
+    color: var(--co-tx, var(--info-tx));
+    border-top-color: var(--co-bd, var(--info-bd));
+}
+.callout .table-vertical th {
+    background-color: transparent;
+    border-right-color: var(--co-bd, var(--info-bd));
+}
+.callout .table-vertical tr + tr th {
+    border-top-color: var(--co-bd, var(--info-bd));
+}
 
 /* --------------------------------------------------------------------------
-   Buttons
+   Buttons — flex/gap 대신 inline-block + margin(메일 호환).
+   Outlook(Windows)은 a 의 padding/border-radius 를 일부 무시한다(링크는 동작).
    -------------------------------------------------------------------------- */
 .btn-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--sp-sm);
-    margin: var(--sp-lg) 0;
-    align-items: center;
+    margin: 10px 0 0;
 }
 
 .btn {
     display: inline-block;
-    padding: 10px 22px;
-    font-family: var(--font);
-    font-size: 0.875rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
+    margin: 6px 8px 0 0;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: bold;
+    white-space: nowrap;
+    text-align: center;
     text-decoration: none;
-    border: 1.5px solid transparent;
-    cursor: pointer;
-    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
-    flex: 0 1 auto;
-    border-radius: 0;
 }
 
 .btn-primary {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
+    background-color: var(--acc);
+    border-color: var(--acc);
+    color: var(--on-acc);
 }
-.btn-primary:hover {
-    background: #1F3A56;
-    border-color: #1F3A56;
-    color: #fff;
-}
-
 .btn-secondary {
-    background: transparent;
-    color: var(--primary);
-    border-color: var(--primary);
+    background-color: #FFFFFF;
+    border-color: var(--acc-d);
+    color: var(--acc-d);
 }
-.btn-secondary:hover {
-    background: var(--primary);
-    color: #fff;
-}
-
 .btn-outline {
-    background: transparent;
-    color: var(--secondary);
-    border-color: var(--secondary);
+    background-color: #FFFFFF;
+    border-color: var(--acc);
+    color: var(--acc-d);
 }
-.btn-outline:hover {
-    background: var(--secondary);
-    color: #fff;
-}
-
+.btn-warn,
 .btn-ghost {
-    background: transparent;
-    color: var(--text-secondary);
-    border-color: var(--border-strong);
-}
-.btn-ghost:hover {
-    border-color: var(--text-primary);
-    color: var(--text-primary);
-}
-
-.btn-warn {
-    background: transparent;
-    color: var(--text-secondary);
-    border-color: var(--border-strong);
-}
-.btn-warn:hover {
-    border-color: var(--text-primary);
-    color: var(--text-primary);
-}
-
-/* --------------------------------------------------------------------------
-   Blockquote
-   -------------------------------------------------------------------------- */
-blockquote {
-    margin: var(--sp-md) 0;
-    padding: var(--sp-md) var(--sp-lg);
-    border-left: 3px solid var(--primary);
-    background-color: var(--bg-subtle);
-    font-style: italic;
-    color: var(--text-secondary);
-}
-
-blockquote p:last-child {
-    margin-bottom: 0;
-}
-
-/* --------------------------------------------------------------------------
-   Footer
-   -------------------------------------------------------------------------- */
-footer {
-    margin-top: var(--sp-2xl);
-    padding-top: var(--sp-md);
-    border-top: 1px solid var(--border-strong);
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    font-weight: 400;
-    letter-spacing: 0.05em;
-    line-height: 1.7;
+    background-color: #FFFFFF;
+    border-color: var(--line);
+    color: var(--sub);
 }
 
 /* --------------------------------------------------------------------------
    Utility
    -------------------------------------------------------------------------- */
-.text-muted { color: var(--text-muted); }
+.text-muted { color: var(--muted); }
 
 .mb-0  { margin-bottom: 0; }
-.mb-sm { margin-bottom: var(--sp-sm); }
-.mb-md { margin-bottom: var(--sp-md); }
-.mb-lg { margin-bottom: var(--sp-lg); }
+.mb-sm { margin-bottom: 10px; }
+.mb-md { margin-bottom: 18px; }
+.mb-lg { margin-bottom: 28px; }
 
 .mt-0  { margin-top: 0; }
-.mt-sm { margin-top: var(--sp-sm); }
-.mt-md { margin-top: var(--sp-md); }
-.mt-lg { margin-top: var(--sp-lg); }
+.mt-sm { margin-top: 10px; }
+.mt-md { margin-top: 18px; }
+.mt-lg { margin-top: 28px; }
+
+/* 미디어쿼리는 두지 않는다 — 이 템플릿의 산출물은 항상 인라인 스타일이고,
+   인라인에는 미디어쿼리를 담을 수 없어 렌더 폭에 따라 결과만 달라진다.
+   표는 width 백분율과 .table-responsive(가로 스크롤)로 폭에 대응한다. */

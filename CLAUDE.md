@@ -50,7 +50,8 @@ npm run preview
 **주요 파라미터:**
 - `options.bodyOnly`: true 시 body 내용만 반환 (기본값: false)
 - `options.profile`: `'email'`(기본) | `'web'`
-- `options.renderWidth`: 변환 시 렌더링할 폭 (기본 1000). 미디어쿼리 평가 기준이며 미리보기도 같은 폭으로 표시된다. 좁은 폭에서 변환해 모바일 분기를 굳혀 버리지 않도록 넉넉한 값을 기본으로 둔다
+- `options.renderWidth`: 콘텐츠 폭 (기본 600). 렌더 iframe·미리보기는 여기에 좌우 고정 여백(`PREVIEW_GUTTER`)을 더한 폭이며, 미리보기에서만 래퍼 폭을 이 값으로 덮어쓴다(결과 HTML은 불변)
+- `options.newTabLinks`: `target`이 없는 `a[href]`에 `target="_blank"` 추가 (기본 true, `#`·mailto·tel·javascript 제외)
 - `options.wrapBody`: body 스타일을 래퍼로 보존 (기본 true)
 - `options.mailSafeLayout`: flex/grid를 block 기반으로 낮춤 (기본 false)
 

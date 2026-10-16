@@ -422,6 +422,27 @@ textarea {
     gap: 0;
 }
 
+.tab-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--sp-3);
+}
+
+.tab-actions-group {
+    display: flex;
+    gap: var(--sp-2);
+}
+
+.tab-actions-group[hidden] {
+    display: none;
+}
+
+.tab-actions button {
+    padding: 4px 12px;
+    font-size: var(--text-sm);
+}
+
 .tab {
     padding: 12px 20px;
     border: none;

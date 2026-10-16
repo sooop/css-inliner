@@ -15,7 +15,7 @@ import {
   updateCssBadge,
   renderWarnings
 } from './modules/ui-controller.js';
-import { convertToInline, createPreview, DEFAULT_RENDER_WIDTH } from './modules/css-converter.js';
+import { convertToInline, createPreview, createInlinePreview, previewViewportWidth, DEFAULT_RENDER_WIDTH } from './modules/css-converter.js';
 import {
   getTemplateCSS,
   getWebOverridesCSS,
@@ -23,6 +23,7 @@ import {
   copyTemplateCSS
 } from './modules/template-manager.js';
 import { removeWhitespace } from './modules/utils.js';
+import { SAMPLES, DEFAULT_SAMPLE_ID, getSample } from './modules/sample-manager.js';
 import {
   saveHistory,
   loadHistoryList,
@@ -40,6 +41,33 @@ initAutoSave();
 initKeyboardShortcuts();
 initDragDrop();
 initHistoryModal(loadHistoryList, loadHistoryItem, deleteHistoryItem, clearHistory, showToast);
+
+// 샘플 HTML — 저장된 입력이 없으면 기본 샘플로 시작한다
+{
+  const htmlTextarea = document.getElementById('htmlInput');
+  const sampleMenu = document.getElementById('sampleMenu');
+
+  const loadSample = (sample) => {
+    htmlTextarea.value = sample.html;
+    htmlTextarea.classList.remove('input-error');
+    localStorage.setItem('html-input-content', sample.html);
+    showToast(`'${sample.label}' 샘플을 불러왔습니다.`, 'success');
+  };
+
+  for (const sample of SAMPLES) {
+    const btn = document.createElement('button');
+    btn.textContent = sample.label;
+    btn.addEventListener('click', () => {
+      const current = htmlTextarea.value.trim();
+      const isSample = SAMPLES.some(s => s.html.trim() === current);
+      if (current && !isSample && !confirm('입력한 HTML이 샘플로 대체됩니다. 계속할까요?')) return;
+      loadSample(sample);
+    });
+    sampleMenu.appendChild(btn);
+  }
+
+  if (!htmlTextarea.value.trim()) htmlTextarea.value = getSample(DEFAULT_SAMPLE_ID).html;
+}
 
 // CSS 배지 초기 업데이트
 updateCssBadge();
@@ -69,11 +97,14 @@ document.getElementById('profileToggle').addEventListener('click', (e) => {
 const wrapBodyInput = document.getElementById('wrapBody');
 const mailSafeLayoutInput = document.getElementById('mailSafeLayout');
 const renderWidthInput = document.getElementById('renderWidth');
+const newTabLinksInput = document.getElementById('newTabLinks');
 
 const savedWrapBody = localStorage.getItem('wrap-body');
 if (savedWrapBody !== null) wrapBodyInput.checked = savedWrapBody === 'true';
 const savedMailSafe = localStorage.getItem('mail-safe-layout');
 if (savedMailSafe !== null) mailSafeLayoutInput.checked = savedMailSafe === 'true';
+const savedNewTab = localStorage.getItem('new-tab-links');
+if (savedNewTab !== null) newTabLinksInput.checked = savedNewTab === 'true';
 const savedRenderWidth = localStorage.getItem('render-width');
 if (savedRenderWidth) renderWidthInput.value = savedRenderWidth;
 
@@ -82,6 +113,9 @@ wrapBodyInput.addEventListener('change', () => {
 });
 mailSafeLayoutInput.addEventListener('change', () => {
   localStorage.setItem('mail-safe-layout', mailSafeLayoutInput.checked);
+});
+newTabLinksInput.addEventListener('change', () => {
+  localStorage.setItem('new-tab-links', newTabLinksInput.checked);
 });
 renderWidthInput.addEventListener('change', () => {
   localStorage.setItem('render-width', renderWidthInput.value);
@@ -224,8 +258,8 @@ async function runConversion(htmlInput, convertBtn) {
     const finalCSS = useBuiltInCSS ? getTemplateCSS() + webOverrides + '\n' + userCSS : userCSS;
 
     // 스타일 미리보기 생성 (변환과 동일한 폭으로 렌더)
-    const previewHTML = createPreview(htmlInput, finalCSS);
-    updatePreview('previewFrame', previewHTML, renderWidth);
+    const previewHTML = createPreview(htmlInput, finalCSS, renderWidth);
+    updatePreview('previewFrame', previewHTML, previewViewportWidth(renderWidth));
 
     // 인라인 변환
     const bodyOnly = document.getElementById('bodyOnly').checked;
@@ -234,7 +268,8 @@ async function runConversion(htmlInput, convertBtn) {
       profile,
       renderWidth,
       wrapBody: wrapBodyInput.checked,
-      mailSafeLayout: mailSafeLayoutInput.checked
+      mailSafeLayout: mailSafeLayoutInput.checked,
+      newTabLinks: newTabLinksInput.checked
     });
 
     let result = conversion.html;
@@ -245,11 +280,10 @@ async function runConversion(htmlInput, convertBtn) {
     }
 
     // 인라인 미리보기 생성
-    const isFragment = !result.trim().toLowerCase().startsWith('<!doctype');
-    const inlinePreviewHTML = isFragment
-      ? `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0">${result}</body></html>`
-      : result;
-    updatePreview('inlinePreviewFrame', inlinePreviewHTML, renderWidth);
+    const inlinePreviewHTML = createInlinePreview(result, renderWidth, {
+      hasWrapper: !bodyOnly
+    });
+    updatePreview('inlinePreviewFrame', inlinePreviewHTML, previewViewportWidth(renderWidth));
 
     // 인라인 코드 표시
     displayInlineCode(result);
@@ -286,6 +320,7 @@ async function runConversion(htmlInput, convertBtn) {
         profile,
         renderWidth,
         wrapBody: wrapBodyInput.checked,
+        newTabLinks: newTabLinksInput.checked,
         mailSafeLayout: mailSafeLayoutInput.checked
       }
     });
