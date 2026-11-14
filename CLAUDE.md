@@ -75,8 +75,12 @@ npm run preview
 
 ### 모듈 구조
 
-- **main.js**: 애플리케이션 진입점, 이벤트 바인딩
-- **ui-controller.js**: UI 상태 관리 (탭 전환, 패널 토글, 미리보기 업데이트)
+- **main.js**: 진입점. 변환 흐름(수동·자동 변환, 직렬 실행), 설정 기억, 이력 자동 저장, 파일 열기
+- **ui-controller.js**: 화면 부품 (탭, 드롭다운, 테마, 분할선, 옵션 묶음, 토스트, 미리보기 축소, 경고, 코드 보기, 크기 게이지, 파일 드롭)
+- **editor.js**: 줄번호가 붙은 textarea 편집기
+- **highlight.js**: 결과 HTML 구문 강조 (자체 토크나이저)
+- **history-manager.js**: 이력 저장소 (Dexie, 실패 시 메모리). 입력만 저장하고 해시로 중복을 묶는다
+- **history-drawer.js**: 이력 서랍 UI (검색, 불러오기, 내보내기/가져오기)
 - **css-converter.js**: CSS 인라인 변환 엔진
 - **template-manager.js**: 템플릿 CSS 가져오기/다운로드/복사 (Vite의 `?inline` 임포트 사용)
 - **utils.js**: 유틸리티 함수 (공백 제거, body 추출, 속성 필터링)

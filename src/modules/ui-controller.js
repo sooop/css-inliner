@@ -1,459 +1,478 @@
 /**
- * UI 컨트롤러 - 사용자 인터랙션 관리
+ * UI 컨트롤러 - 화면 부품 (탭, 드롭다운, 테마, 분할선, 옵션, 토스트, 미리보기, 코드, 상태줄)
  */
+import { highlightHTML } from './highlight.js';
+import { lineNumbers, formatBytes } from './editor.js';
 
-export function initUIController() {
-  // 탭 전환
-  const tabs = document.querySelectorAll('.tab');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      const tabName = tab.getAttribute('data-tab');
-      switchTab(tabName);
-    });
-  });
+export const $ = (id) => document.getElementById(id);
 
-  // 드롭다운 초기화
-  initDropdown();
+const store = {
+  get(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, String(value));
+    } catch {
+      /* 저장소를 못 써도 앱은 그대로 동작한다 */
+    }
+  },
+  remove(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* noop */
+    }
+  }
+};
+export { store };
+
+/* --- 토스트 --- */
+
+export function showToast(message, type = 'success', duration = 2600) {
+  const container = $('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  while (container.children.length > 3) container.firstElementChild.remove();
+
+  setTimeout(() => {
+    toast.classList.add('leaving');
+    setTimeout(() => toast.remove(), 220);
+  }, duration);
 }
 
-/**
- * 드롭다운 메뉴 초기화
- */
-function initDropdown() {
-  const dropdowns = document.querySelectorAll('.dropdown');
-  const closeAll = () => dropdowns.forEach(d => d.classList.remove('active'));
+/* --- 복사 / 저장 --- */
 
-  dropdowns.forEach(dropdown => {
-    dropdown.querySelector('.dropdown-trigger').addEventListener('click', (e) => {
+export async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext !== false) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    /* 아래 폴백으로 */
+  }
+  try {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+export function downloadText(text, filename, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/* --- 탭 --- */
+
+const tabListeners = [];
+
+function moveIndicator(tablist, animate = true) {
+  const active = tablist.querySelector('.tab.active');
+  const indicator = tablist.querySelector('.tab-indicator');
+  if (!active || !indicator) return;
+  tablist.classList.toggle('no-anim', !animate);
+  indicator.style.setProperty('--x', `${active.offsetLeft + 10}px`);
+  indicator.style.setProperty('--w', `${Math.max(0, active.offsetWidth - 20)}px`);
+  if (!animate) {
+    // 강제 리플로우 뒤 다시 애니메이션 허용
+    void indicator.offsetWidth;
+    tablist.classList.remove('no-anim');
+  }
+}
+
+export function switchTab(group, panelId) {
+  const tablist = document.querySelector(`.tabs[data-tabs="${group}"]`);
+  if (!tablist) return;
+  const tabs = [...tablist.querySelectorAll('.tab')];
+  if (!tabs.some((tab) => tab.dataset.tab === panelId)) return;
+
+  for (const tab of tabs) {
+    const isActive = tab.dataset.tab === panelId;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    tab.tabIndex = isActive ? 0 : -1;
+    $(tab.dataset.tab).classList.toggle('active', isActive);
+  }
+  moveIndicator(tablist);
+  for (const listener of tabListeners) listener(group, panelId);
+}
+
+export function activeTab(group) {
+  const active = document.querySelector(`.tabs[data-tabs="${group}"] .tab.active`);
+  return active ? active.dataset.tab : null;
+}
+
+export function onTabChange(listener) {
+  tabListeners.push(listener);
+}
+
+export function initTabs() {
+  document.querySelectorAll('.tabs').forEach((tablist) => {
+    const group = tablist.dataset.tabs;
+    const tabs = [...tablist.querySelectorAll('.tab')];
+
+    tablist.addEventListener('click', (e) => {
+      const tab = e.target.closest('.tab');
+      if (tab) switchTab(group, tab.dataset.tab);
+    });
+
+    tablist.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const index = tabs.indexOf(document.activeElement);
+      if (index < 0) return;
+      e.preventDefault();
+      const next = tabs[(index + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      switchTab(group, next.dataset.tab);
+      next.focus();
+    });
+
+    tabs.forEach((tab) => {
+      tab.tabIndex = tab.classList.contains('active') ? 0 : -1;
+    });
+
+    moveIndicator(tablist, false);
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => moveIndicator(tablist, false));
+      tabs.forEach((tab) => observer.observe(tab));
+    }
+  });
+}
+
+/* --- 드롭다운 --- */
+
+export function initDropdowns() {
+  const dropdowns = [...document.querySelectorAll('.dropdown')];
+  const setOpen = (dropdown, open) => {
+    dropdown.classList.toggle('active', open);
+    dropdown.querySelector('.dropdown-trigger').setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  const closeAll = () => dropdowns.forEach((d) => setOpen(d, false));
+
+  dropdowns.forEach((dropdown) => {
+    const trigger = dropdown.querySelector('.dropdown-trigger');
+    const menu = dropdown.querySelector('.dropdown-menu');
+
+    trigger.addEventListener('click', (e) => {
       e.stopPropagation();
       const wasActive = dropdown.classList.contains('active');
       closeAll();
-      dropdown.classList.toggle('active', !wasActive);
+      setOpen(dropdown, !wasActive);
+      if (!wasActive) menu.querySelector('button')?.focus({ preventScroll: true });
     });
 
     // 메뉴 항목은 동적으로 추가되므로 위임으로 처리
-    dropdown.querySelector('.dropdown-menu').addEventListener('click', (e) => {
+    menu.addEventListener('click', (e) => {
       if (e.target.closest('button')) closeAll();
+    });
+
+    dropdown.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && dropdown.classList.contains('active')) {
+        e.stopPropagation();
+        closeAll();
+        trigger.focus();
+        return;
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      const items = [...menu.querySelectorAll('button')];
+      if (!items.length || !dropdown.classList.contains('active')) return;
+      e.preventDefault();
+      const index = items.indexOf(document.activeElement);
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      items[(index + step + items.length) % items.length].focus();
     });
   });
 
-  // 외부 클릭 시 닫기
   document.addEventListener('click', closeAll);
 }
 
-/**
- * 다크모드 초기화
- */
+/* --- 테마 --- */
+
 export function initTheme() {
-  const themeToggle = document.getElementById('themeToggle');
-  const themeIcon = themeToggle.querySelector('.theme-icon');
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+  const resolve = (pref) => (pref === 'light' || pref === 'dark' ? pref : media.matches ? 'dark' : 'light');
+  const apply = (pref) => document.documentElement.setAttribute('data-theme', resolve(pref));
 
-  // localStorage에서 테마 로드
-  const savedTheme = localStorage.getItem('theme-preference') || 'system';
-  applyTheme(savedTheme);
+  apply(store.get('theme-preference'));
 
-  // 토글 버튼
-  themeToggle.addEventListener('click', () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    applyTheme(newTheme);
-    localStorage.setItem('theme-preference', newTheme);
+  $('themeToggle').addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    apply(next);
+    store.set('theme-preference', next);
   });
 
-  // 시스템 테마 변경 감지
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (localStorage.getItem('theme-preference') === 'system') {
-      applyTheme('system');
-    }
+  media.addEventListener('change', () => {
+    const pref = store.get('theme-preference');
+    if (pref !== 'light' && pref !== 'dark') apply('system');
   });
 }
 
-function applyTheme(theme) {
-  const themeIcon = document.querySelector('.theme-icon');
-  let actualTheme = theme;
+/* --- 분할선: 끌어서 폭 조절, 클릭으로 입력 패널 접기/펼치기 --- */
 
-  if (theme === 'system') {
-    actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-
-  document.documentElement.setAttribute('data-theme', actualTheme);
-  themeIcon.textContent = actualTheme === 'dark' ? '☀️' : '🌙';
-}
-
-/**
- * 패널 토글 초기화
- */
 export function initResizer() {
-  const resizer = document.querySelector('.resizer');
-  const paneLeft = document.querySelector('.pane-left');
+  const split = $('split');
+  const resizer = $('resizer');
+  const paneLeft = $('paneLeft');
+  const MIN = 22;
+  const MAX = 78;
 
-  // 저장된 접힘 상태 복원
-  const isCollapsed = localStorage.getItem('panel-left-collapsed') === 'true';
-  if (isCollapsed) {
-    paneLeft.classList.add('collapsed');
-  }
-
-  // 클릭 시 토글
-  resizer.addEventListener('click', () => {
-    const isCurrentlyCollapsed = paneLeft.classList.contains('collapsed');
-
-    if (isCurrentlyCollapsed) {
-      // 펼치기
-      paneLeft.classList.remove('collapsed');
-      localStorage.setItem('panel-left-collapsed', 'false');
-    } else {
-      // 접기
-      paneLeft.classList.add('collapsed');
-      localStorage.setItem('panel-left-collapsed', 'true');
-    }
-  });
-}
-
-/**
- * CSS 모달 초기화
- */
-export function initModal() {
-  const modal = document.getElementById('cssModal');
-  const openBtn = document.getElementById('openCssModalBtn');
-  const closeBtn = modal.querySelector('.close-btn');
-  const applyBtn = document.getElementById('applyCssBtn');
-  const cancelBtn = document.getElementById('cancelCssBtn');
-  const cssInput = document.getElementById('cssInput');
-
-  let originalValue = '';
-
-  openBtn.addEventListener('click', () => {
-    originalValue = cssInput.value;
-    modal.showModal();
-  });
-
-  closeBtn.addEventListener('click', () => modal.close());
-  cancelBtn.addEventListener('click', () => {
-    cssInput.value = originalValue;
-    modal.close();
-  });
-
-  applyBtn.addEventListener('click', () => {
-    localStorage.setItem('css-input-content', cssInput.value);
-    modal.close();
-  });
-
-  // 외부 클릭 시 닫기
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      cssInput.value = originalValue;
-      modal.close();
-    }
-  });
-}
-
-/**
- * 이력 모달 열기
- */
-export async function openHistoryModal(loadHistoryListFn, loadHistoryItemFn, deleteHistoryItemFn, clearHistoryFn, showToastFn) {
-  const modal = document.getElementById('historyModal');
-  const historyList = document.getElementById('historyList');
-
-  // 이력 목록 로드
-  const items = await loadHistoryListFn();
-
-  // 이력 렌더링
-  if (items.length === 0) {
-    historyList.innerHTML = '<div class="empty-state">이력이 없습니다</div>';
-  } else {
-    historyList.innerHTML = items.map(item => {
-      const htmlLen = item.htmlInput ? item.htmlInput.length : 0;
-      const sizeLabel = htmlLen > 1024 ? `${(htmlLen / 1024).toFixed(1)}KB` : `${htmlLen}B`;
-      const optionCount = [item.options.useBuiltInCSS, item.options.bodyOnly, item.options.removeWhitespace].filter(Boolean).length;
-      return `
-      <div class="history-item" data-id="${item.id}">
-        <div class="history-item-header">
-          <span class="history-item-time">${formatTimestamp(item.timestamp)}</span>
-          <div class="history-item-meta">${sizeLabel} HTML · 옵션 ${optionCount}개</div>
-          <button class="history-item-delete" data-id="${item.id}" onclick="event.stopPropagation()">삭제</button>
-        </div>
-        <div class="history-item-preview">${item.preview || 'HTML 내용 없음'}</div>
-        <div class="history-item-options">
-          ${item.options.useBuiltInCSS ? '<span class="history-item-badge">내장 CSS</span>' : ''}
-          ${item.options.bodyOnly ? '<span class="history-item-badge">Body Only</span>' : ''}
-          ${item.options.removeWhitespace ? '<span class="history-item-badge">공백 제거</span>' : ''}
-        </div>
-      </div>
-    `}).join('');
-
-    // 이력 항목 클릭 이벤트
-    historyList.querySelectorAll('.history-item').forEach(item => {
-      item.addEventListener('click', async () => {
-        const id = parseInt(item.getAttribute('data-id'));
-        const historyItem = await loadHistoryItemFn(id);
-
-        if (historyItem) {
-          // 입력 영역에 복원
-          document.getElementById('htmlInput').value = historyItem.htmlInput;
-          document.getElementById('cssInput').value = historyItem.cssInput;
-          document.getElementById('useBuiltInCSS').checked = historyItem.options.useBuiltInCSS;
-          document.getElementById('bodyOnly').checked = historyItem.options.bodyOnly;
-          document.getElementById('removeWhitespace').checked = historyItem.options.removeWhitespace;
-
-          // 변환 조건(폭·래퍼·호환 모드)까지 복원해야 같은 결과가 재현된다
-          const options = historyItem.options;
-          if (options.wrapBody !== undefined) {
-            document.getElementById('wrapBody').checked = options.wrapBody;
-            localStorage.setItem('wrap-body', options.wrapBody);
-          }
-          if (options.newTabLinks !== undefined) {
-            document.getElementById('newTabLinks').checked = options.newTabLinks;
-            localStorage.setItem('new-tab-links', options.newTabLinks);
-          }
-          if (options.mailSafeLayout !== undefined) {
-            document.getElementById('mailSafeLayout').checked = options.mailSafeLayout;
-            localStorage.setItem('mail-safe-layout', options.mailSafeLayout);
-          }
-          if (options.renderWidth) {
-            document.getElementById('renderWidth').value = options.renderWidth;
-            localStorage.setItem('render-width', options.renderWidth);
-          }
-          if (options.profile) {
-            document.querySelectorAll('.profile-btn').forEach((b) => {
-              b.classList.toggle('active', b.getAttribute('data-profile') === options.profile);
-            });
-            localStorage.setItem('output-profile', options.profile);
-          }
-
-          // localStorage에도 저장
-          localStorage.setItem('html-input-content', historyItem.htmlInput);
-          localStorage.setItem('css-input-content', historyItem.cssInput);
-          localStorage.setItem('use-builtin-css', historyItem.options.useBuiltInCSS);
-
-          modal.close();
-          showToastFn('이력을 복원했습니다', 'success');
-        }
-      });
-    });
-
-    // 삭제 버튼 클릭 이벤트
-    historyList.querySelectorAll('.history-item-delete').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = parseInt(btn.getAttribute('data-id'));
-        await deleteHistoryItemFn(id);
-        showToastFn('이력을 삭제했습니다', 'success');
-        // 모달 다시 열기
-        openHistoryModal(loadHistoryListFn, loadHistoryItemFn, deleteHistoryItemFn, clearHistoryFn, showToastFn);
-      });
-    });
-  }
-
-  modal.showModal();
-}
-
-/**
- * 이력 모달 초기화
- */
-export function initHistoryModal(loadHistoryListFn, loadHistoryItemFn, deleteHistoryItemFn, clearHistoryFn, showToastFn) {
-  const modal = document.getElementById('historyModal');
-  const openBtn = document.getElementById('openHistoryBtn');
-  const closeBtn = document.getElementById('closeHistoryModal');
-  const clearBtn = document.getElementById('clearHistoryBtn');
-
-  openBtn.addEventListener('click', () => {
-    openHistoryModal(loadHistoryListFn, loadHistoryItemFn, deleteHistoryItemFn, clearHistoryFn, showToastFn);
-  });
-
-  closeBtn.addEventListener('click', () => modal.close());
-
-  clearBtn.addEventListener('click', async () => {
-    if (confirm('모든 이력을 삭제하시겠습니까?')) {
-      await clearHistoryFn();
-      showToastFn('모든 이력을 삭제했습니다', 'success');
-      modal.close();
-    }
-  });
-
-  // 외부 클릭 시 닫기
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.close();
-    }
-  });
-}
-
-/**
- * 타임스탬프 포맷 (예: 2026-02-05 14:30)
- */
-function formatTimestamp(timestamp) {
-  const date = new Date(timestamp);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
-}
-
-/**
- * 자동 저장 초기화
- */
-export function initAutoSave(defaultCSS = '') {
-  const htmlInput = document.getElementById('htmlInput');
-  const cssInput = document.getElementById('cssInput');
-  const useBuiltInCSS = document.getElementById('useBuiltInCSS');
-  const autoConvert = document.getElementById('autoConvert');
-
-  // 복원
-  const savedHTML = localStorage.getItem('html-input-content');
-  const savedCSS = localStorage.getItem('css-input-content');
-  const savedCheckbox = localStorage.getItem('use-builtin-css');
-  const savedAutoConvert = localStorage.getItem('auto-convert');
-
-  if (savedHTML) htmlInput.value = savedHTML;
-  if (savedCSS) cssInput.value = savedCSS;
-  else if (defaultCSS) cssInput.value = defaultCSS;
-  if (savedCheckbox !== null) useBuiltInCSS.checked = savedCheckbox === 'true';
-  if (savedAutoConvert !== null) autoConvert.checked = savedAutoConvert === 'true';
-
-  // 자동 저장 (debounce)
-  htmlInput.addEventListener('input', debounce(() => {
-    localStorage.setItem('html-input-content', htmlInput.value);
-  }, 500));
-
-  cssInput.addEventListener('input', debounce(() => {
-    localStorage.setItem('css-input-content', cssInput.value);
-  }, 500));
-
-  useBuiltInCSS.addEventListener('change', () => {
-    localStorage.setItem('use-builtin-css', useBuiltInCSS.checked);
-  });
-
-  // 자동변환 설정 저장
-  autoConvert.addEventListener('change', () => {
-    localStorage.setItem('auto-convert', autoConvert.checked);
-  });
-
-  // 붙여넣기 시 자동 변환
-  htmlInput.addEventListener('paste', debounce(() => {
-    if (autoConvert.checked) {
-      document.getElementById('convertBtn').click();
-    }
-  }, 500));
-}
-
-/**
- * 키보드 단축키 초기화
- */
-export function initKeyboardShortcuts() {
-  document.addEventListener('keydown', (e) => {
-    // Ctrl+Enter: 변환
-    if (e.ctrlKey && e.key === 'Enter') {
-      e.preventDefault();
-      document.getElementById('convertBtn').click();
-    }
-
-    // Ctrl+K: CSS 모달 열기
-    if (e.ctrlKey && e.key === 'k') {
-      e.preventDefault();
-      document.getElementById('openCssModalBtn').click();
-    }
-
-    // Ctrl+Shift+C: 코드 복사
-    if (e.ctrlKey && e.shiftKey && e.key === 'C') {
-      e.preventDefault();
-      document.getElementById('copyCodeBtn').click();
-    }
-
-    // ?: 단축키 도움말 (textarea/input 포커스 아닐 때)
-    if (e.key === '?' && !e.ctrlKey && !e.altKey) {
-      const tag = document.activeElement.tagName.toLowerCase();
-      if (tag !== 'textarea' && tag !== 'input') {
-        e.preventDefault();
-        document.getElementById('shortcutsModal').showModal();
-      }
-    }
-  });
-}
-
-/**
- * Utility: debounce
- */
-function debounce(fn, delay) {
-  let timeoutId;
-  return function(...args) {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn.apply(this, args), delay);
+  const setRatio = (percent, save = true) => {
+    const clamped = Math.min(MAX, Math.max(MIN, percent));
+    split.style.setProperty('--left', `${clamped}%`);
+    resizer.setAttribute('aria-valuenow', String(Math.round(clamped)));
+    if (save) store.set('split-ratio', clamped.toFixed(1));
+    return clamped;
   };
+  const getRatio = () => parseFloat(split.style.getPropertyValue('--left')) || 50;
+
+  const setCollapsed = (collapsed) => {
+    paneLeft.classList.toggle('collapsed', collapsed);
+    paneLeft.inert = collapsed;
+    resizer.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    store.set('panel-left-collapsed', collapsed);
+  };
+
+  resizer.setAttribute('aria-valuemin', String(MIN));
+  resizer.setAttribute('aria-valuemax', String(MAX));
+  const saved = parseFloat(store.get('split-ratio'));
+  setRatio(Number.isFinite(saved) ? saved : 50, false);
+  setCollapsed(store.get('panel-left-collapsed') === 'true');
+
+  let drag = null;
+
+  resizer.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    drag = { startX: e.clientX, moved: false };
+    resizer.setPointerCapture(e.pointerId);
+  });
+
+  resizer.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    if (!drag.moved) {
+      if (Math.abs(e.clientX - drag.startX) < 4) return;
+      drag.moved = true;
+      split.classList.add('dragging');
+      if (paneLeft.classList.contains('collapsed')) setCollapsed(false);
+    }
+    const rect = split.getBoundingClientRect();
+    setRatio(((e.clientX - rect.left) / rect.width) * 100, false);
+  });
+
+  const end = (e) => {
+    if (!drag) return;
+    const moved = drag.moved;
+    drag = null;
+    if (resizer.hasPointerCapture(e.pointerId)) resizer.releasePointerCapture(e.pointerId);
+    split.classList.remove('dragging');
+    if (moved) store.set('split-ratio', getRatio().toFixed(1));
+    else if (e.type === 'pointerup') setCollapsed(!paneLeft.classList.contains('collapsed'));
+  };
+  resizer.addEventListener('pointerup', end);
+  resizer.addEventListener('pointercancel', end);
+
+  resizer.addEventListener('dblclick', () => {
+    setCollapsed(false);
+    setRatio(50);
+  });
+
+  resizer.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setCollapsed(!paneLeft.classList.contains('collapsed'));
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (paneLeft.classList.contains('collapsed')) setCollapsed(false);
+      setRatio(getRatio() + (e.key === 'ArrowRight' ? 2 : -2));
+    }
+  });
 }
 
-/**
- * 탭 전환 함수
- */
-function switchTab(tabName) {
-  document.querySelectorAll('.tab').forEach(tab => {
-    const isActive = tab.getAttribute('data-tab') === tabName;
-    tab.classList.toggle('active', isActive);
-    tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+/* --- 접히는 옵션 묶음 --- */
+
+export function initOptionsPanel() {
+  const root = $('options');
+  const toggle = $('optionsToggle');
+  const summary = $('optionsSummary');
+  const inputs = [...root.querySelectorAll('.options-grid input[type="checkbox"]')];
+
+  const setOpen = (open) => {
+    root.dataset.open = open ? 'true' : 'false';
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    summary.setAttribute('aria-expanded', open ? 'true' : 'false');
+    store.set('options-open', open);
+  };
+  const flip = () => setOpen(root.dataset.open !== 'true');
+
+  let lastLabels = '';
+  const renderSummary = () => {
+    const labels = inputs.filter((input) => input.checked).map((input) => input.dataset.optionLabel);
+    const key = labels.join('|');
+    if (key === lastLabels && summary.childElementCount) return;
+    const previous = new Set(lastLabels.split('|'));
+    lastLabels = key;
+    summary.textContent = '';
+    if (!labels.length) {
+      summary.textContent = '옵션';
+      return;
+    }
+    for (const label of labels) {
+      const chip = document.createElement('span');
+      chip.className = 'option-chip';
+      chip.textContent = label;
+      // 새로 켜진 것만 등장 애니메이션
+      if (previous.has(label)) chip.style.animation = 'none';
+      summary.appendChild(chip);
+    }
+  };
+
+  toggle.addEventListener('click', flip);
+  summary.addEventListener('click', flip);
+  // 요약 영역을 눌러도 입력창 포커스(모바일 키보드)를 빼앗지 않는다
+  summary.addEventListener('pointerdown', (e) => e.preventDefault());
+  summary.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      flip();
+    }
   });
-  document.querySelectorAll('.tab-content').forEach(content => {
-    content.classList.toggle('active', content.id === tabName);
-  });
-  document.querySelectorAll('.tab-actions-group').forEach(group => {
-    group.hidden = group.dataset.for !== tabName;
-  });
+  inputs.forEach((input) => input.addEventListener('change', renderSummary));
+
+  setOpen(store.get('options-open') === 'true');
+  renderSummary();
+  return { renderSummary };
 }
 
-/**
- * CSS 배지 업데이트
- */
+/* --- CSS 배지 --- */
+
 export function updateCssBadge() {
-  const badge = document.getElementById('cssBadge');
-  if (!badge) return;
-  const useBuiltIn = document.getElementById('useBuiltInCSS').checked;
-  const cssInput = document.getElementById('cssInput').value.trim();
-  const lineCount = cssInput ? cssInput.split('\n').length : 0;
+  const badge = $('cssBadge');
+  const useBuiltIn = $('useBuiltInCSS').checked;
+  const css = $('cssInput').value.trim();
+  const lines = css ? css.split('\n').length : 0;
 
-  if (useBuiltIn && !cssInput) {
-    badge.textContent = '내장 CSS';
-    badge.className = 'css-badge css-badge-builtin';
-  } else if (useBuiltIn && cssInput) {
-    badge.textContent = `내장 CSS + 커스텀 (${lineCount}줄)`;
-    badge.className = 'css-badge css-badge-combined';
-  } else if (cssInput) {
-    badge.textContent = `커스텀 CSS (${lineCount}줄)`;
-    badge.className = 'css-badge css-badge-custom';
+  if (useBuiltIn && !css) {
+    badge.textContent = '내장';
+    badge.dataset.kind = 'builtin';
+  } else if (useBuiltIn) {
+    badge.textContent = `내장 + ${lines}줄`;
+    badge.dataset.kind = 'combined';
+  } else if (css) {
+    badge.textContent = `${lines}줄`;
+    badge.dataset.kind = 'custom';
   } else {
-    badge.textContent = 'CSS 없음';
-    badge.className = 'css-badge css-badge-none';
+    badge.textContent = '없음';
+    badge.dataset.kind = 'none';
   }
 }
 
-/**
- * CSS 파일 로드 핸들러
- */
-export function handleCSSFileUpload(file, callback) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    callback(e.target.result);
-  };
-  reader.readAsText(file);
+/* --- 파일 드롭 --- */
+
+// 확장자 또는 MIME 중 하나만 맞아도 통과. 판별 불가(확장자 없고 type 빈 값)는 통과시키고 읽은 뒤 판단한다.
+export function matchesFile(file, { exts = [], mimes = [] } = {}) {
+  if (!exts.length && !mimes.length) return true;
+  const name = file.name.toLowerCase();
+  const type = (file.type || '').toLowerCase();
+  if (exts.some((ext) => name.endsWith(ext))) return true;
+  if (type && mimes.some((m) => (m.endsWith('/*') ? type.startsWith(m.slice(0, -1)) : type === m))) return true;
+  return !type && !/\.[^./\\]+$/.test(name);
 }
 
-/**
- * 인라인 코드 복사
- */
-export function copyInlineCode() {
-  const code = document.getElementById('inlineCode').textContent;
-  navigator.clipboard.writeText(code).then(() => {
-    alert('인라인 코드가 클립보드에 복사되었습니다.');
+const hasFiles = (e) => !!e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+
+export function bindDropZone(el, onFiles) {
+  let depth = 0;
+  const mark = (on) => el.toggleAttribute('data-dragover', on);
+
+  el.addEventListener('dragenter', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    depth++;
+    mark(true);
+  });
+  el.addEventListener('dragover', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  el.addEventListener('dragleave', (e) => {
+    if (!hasFiles(e)) return;
+    depth = Math.max(0, depth - 1);
+    if (!depth) mark(false);
+  });
+  el.addEventListener('drop', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    depth = 0;
+    mark(false);
+    const files = Array.from(e.dataTransfer.files); // await 전에 복사
+    if (files.length) onFiles(files);
   });
 }
 
-/**
- * 미리보기 업데이트
- *
- * renderWidth를 주면 iframe을 그 폭으로 고정한 뒤 패널 크기에 맞춰 축소해서 보여준다.
+// 영역 밖에 놓아도 브라우저가 파일을 열어 앱을 벗어나지 않게 한다
+export function guardWindowDrops() {
+  for (const type of ['dragover', 'drop']) {
+    window.addEventListener(type, (e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      if (type === 'dragover') e.dataTransfer.dropEffect = 'none';
+    });
+  }
+}
+
+/* --- 미리보기 ---
+ * iframe 을 변환과 같은 폭으로 고정한 뒤 패널 크기에 맞춰 축소해서 보여 준다.
  * 변환도 같은 폭에서 이뤄지므로 미디어쿼리·백분율이 미리보기와 결과에서 동일하게 평가된다.
- * (패널을 리사이즈해도 미리보기 레이아웃이 바뀌지 않는다)
  */
+
+const previewObservers = new WeakMap();
+
+function applyPreviewScale(frame) {
+  const renderWidth = Number(frame.dataset.renderWidth || 0);
+  const wrapper = frame.parentElement;
+  if (!renderWidth || !wrapper) return;
+
+  const available = wrapper.clientWidth;
+  const height = wrapper.clientHeight;
+  if (!available || !height) return; // 숨은 탭 — 보이게 되면 ResizeObserver 가 다시 부른다
+
+  const scale = Math.min(1, available / renderWidth);
+  const offset = Math.max(0, (available - renderWidth * scale) / 2);
+
+  frame.style.transformOrigin = 'top left';
+  frame.style.width = `${renderWidth}px`;
+  frame.style.height = `${height / scale}px`;
+  frame.style.transform = `translateX(${offset}px) scale(${scale})`;
+  frame.dataset.scale = String(scale);
+  updateZoomBadge();
+}
+
 export function updatePreview(frameId, html, renderWidth = 0) {
-  const frame = document.getElementById(frameId);
+  const frame = $(frameId);
   const doc = frame.contentDocument;
   doc.open();
   doc.write(html);
@@ -461,147 +480,142 @@ export function updatePreview(frameId, html, renderWidth = 0) {
 
   frame.dataset.renderWidth = String(renderWidth || 0);
   applyPreviewScale(frame);
-  observePreviewResize(frame);
+
+  if (!previewObservers.has(frame) && typeof ResizeObserver !== 'undefined') {
+    const observer = new ResizeObserver(() => applyPreviewScale(frame));
+    observer.observe(frame.parentElement);
+    previewObservers.set(frame, observer);
+  }
 }
 
-function applyPreviewScale(frame) {
-  const renderWidth = Number(frame.dataset.renderWidth || 0);
-  const wrapper = frame.parentElement;
-
-  if (!renderWidth || !wrapper) {
-    frame.style.flex = '';
-    frame.style.width = '';
-    frame.style.height = '';
-    frame.style.transform = '';
+export function updateZoomBadge() {
+  const badge = $('zoomBadge');
+  const panel = document.querySelector('#outputPanels > .tab-panel.active');
+  const frame = panel && panel.querySelector('.preview-frame');
+  const width = frame ? Number(frame.dataset.renderWidth || 0) : 0;
+  if (!frame || !width) {
+    badge.hidden = true;
     return;
   }
-
-  const available = wrapper.clientWidth;
-  const scale = available > 0 ? Math.min(1, available / renderWidth) : 1;
-
-  frame.style.flex = 'none'; // 래퍼가 flex 컨테이너라 높이를 직접 지정하려면 필요
-  frame.style.transformOrigin = 'top left';
-  frame.style.width = `${renderWidth}px`;
-  frame.style.height = `${wrapper.clientHeight / scale}px`;
-  frame.style.transform = `scale(${scale})`;
+  const scale = Number(frame.dataset.scale || 1);
+  badge.textContent = scale < 0.995 ? `${width}px · ${Math.round(scale * 100)}%` : `${width}px`;
+  badge.hidden = false;
 }
 
-const previewObservers = new WeakMap();
+/* --- 경고 --- */
 
-function observePreviewResize(frame) {
-  if (previewObservers.has(frame) || typeof ResizeObserver === 'undefined') return;
-  const observer = new ResizeObserver(() => applyPreviewScale(frame));
-  observer.observe(frame.parentElement);
-  previewObservers.set(frame, observer);
-}
+let warningKey = '';
 
-/**
- * 변환 경고 표시
- */
 export function renderWarnings(warnings) {
-  const banner = document.getElementById('warningBanner');
-  if (!banner) return;
+  const chip = $('warningChip');
+  const panel = $('warningPanel');
+  const list = $('warningList');
+  const items = warnings || [];
 
-  banner.textContent = '';
-
-  if (!warnings || !warnings.length) {
-    banner.hidden = true;
+  list.textContent = '';
+  if (!items.length) {
+    chip.hidden = true;
+    panel.hidden = true;
+    warningKey = '';
     return;
   }
 
-  const warnCount = warnings.filter((w) => w.level === 'warn').length;
-  banner.hidden = false;
-  banner.classList.toggle('has-warning', warnCount > 0);
-
-  const details = document.createElement('details');
-  details.open = warnCount > 0;
-
-  const summary = document.createElement('summary');
-  summary.textContent =
-    warnCount > 0
-      ? `호환성 경고 ${warnCount}건${warnings.length > warnCount ? ` · 참고 ${warnings.length - warnCount}건` : ''}`
-      : `참고 ${warnings.length}건`;
-  details.appendChild(summary);
-
-  const list = document.createElement('ul');
-  for (const warning of warnings) {
+  // 경고를 먼저, 참고를 뒤에
+  const sorted = [...items].sort((a, b) => (a.level === 'warn' ? 0 : 1) - (b.level === 'warn' ? 0 : 1));
+  for (const warning of sorted) {
     const item = document.createElement('li');
     item.className = `warning-${warning.level}`;
-    item.textContent = warning.message;
+    const text = document.createElement('span');
+    text.textContent = warning.message;
+    item.appendChild(text);
     list.appendChild(item);
   }
-  details.appendChild(list);
-  banner.appendChild(details);
-}
 
-/**
- * 인라인 코드 표시
- */
-export function displayInlineCode(code) {
-  const codeElement = document.getElementById('inlineCode');
-  if (code && code.trim()) {
-    codeElement.textContent = code;
-  } else {
-    codeElement.innerHTML = '<div class="empty-state">변환 버튼을 클릭하여 결과를 생성하세요</div>';
+  const warnCount = items.filter((w) => w.level === 'warn').length;
+  const infoCount = items.length - warnCount;
+  chip.textContent = [warnCount ? `경고 ${warnCount}` : '', infoCount ? `참고 ${infoCount}` : '']
+    .filter(Boolean)
+    .join(' · ');
+  chip.classList.toggle('has-warning', warnCount > 0);
+  chip.hidden = false;
+
+  const open = store.get('warnings-open') !== 'false';
+  panel.hidden = !open;
+  chip.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+  // 내용이 달라졌을 때만 주의를 끈다
+  const key = items.map((w) => w.code || w.message).join('|');
+  if (key !== warningKey) {
+    warningKey = key;
+    chip.classList.remove('bump');
+    void chip.offsetWidth;
+    chip.classList.add('bump');
   }
 }
 
-/**
- * 토스트 메시지 표시
- */
-export function showToast(message, type = 'success', duration = 3000) {
-  const container = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.remove();
-  }, duration);
+export function initWarnings() {
+  const chip = $('warningChip');
+  const panel = $('warningPanel');
+  chip.addEventListener('click', () => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    chip.setAttribute('aria-expanded', open ? 'true' : 'false');
+    store.set('warnings-open', open);
+  });
 }
 
-/**
- * 드래그앤드롭 초기화
- */
-export function initDragDrop() {
-  const paneLeft = document.querySelector('.pane-left');
-  const htmlInput = document.getElementById('htmlInput');
-  const cssInput = document.getElementById('cssInput');
+/* --- 코드 보기 --- */
 
-  ['dragenter', 'dragover'].forEach(eventName => {
-    paneLeft.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      paneLeft.classList.add('drag-over');
-    });
-  });
+export function displayCode(code) {
+  const body = $('inlineCode');
+  const gutter = $('codeGutter');
+  if (!code) {
+    body.textContent = '';
+    gutter.textContent = '';
+    return;
+  }
+  body.innerHTML = highlightHTML(code);
+  let lines = 1;
+  for (let i = code.indexOf('\n'); i !== -1; i = code.indexOf('\n', i + 1)) lines++;
+  gutter.textContent = lineNumbers(lines) + '\n';
+  body.scrollTop = 0;
+  body.scrollLeft = 0;
+  gutter.scrollTop = 0;
+}
 
-  ['dragleave', 'drop'].forEach(eventName => {
-    paneLeft.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      paneLeft.classList.remove('drag-over');
-    });
-  });
+export function initCodeView() {
+  const view = $('codeView');
+  const body = $('inlineCode');
+  const gutter = $('codeGutter');
+  const toggle = $('wrapToggle');
 
-  paneLeft.addEventListener('drop', (e) => {
-    const file = e.dataTransfer.files[0];
-    if (!file) return;
+  body.addEventListener('scroll', () => {
+    gutter.scrollTop = body.scrollTop;
+  }, { passive: true });
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target.result;
-      if (file.name.endsWith('.html')) {
-        htmlInput.value = content;
-        showToast(`${file.name} 파일을 불러왔습니다.`, 'success');
-      } else if (file.name.endsWith('.css')) {
-        cssInput.value = content;
-        showToast(`${file.name} 파일을 불러왔습니다.`, 'success');
-      } else {
-        showToast('HTML 또는 CSS 파일만 업로드할 수 있습니다.', 'error');
-      }
-    };
-    reader.readAsText(file);
-  });
+  const setWrap = (wrap) => {
+    view.classList.toggle('wrap', wrap);
+    toggle.setAttribute('aria-pressed', wrap ? 'true' : 'false');
+    store.set('code-wrap', wrap);
+  };
+  toggle.addEventListener('click', () => setWrap(!view.classList.contains('wrap')));
+  setWrap(store.get('code-wrap') === 'true');
+}
+
+/* --- 상태줄: 크기 게이지 --- */
+
+export const GMAIL_CLIP_BYTES = 102 * 1024;
+
+export function updateGauge(bytes) {
+  const gauge = $('sizeGauge');
+  if (!bytes) {
+    gauge.dataset.level = 'idle';
+    $('sizeLabel').textContent = '–';
+    $('sizeFill').style.setProperty('--ratio', '0');
+    return;
+  }
+  const ratio = bytes / GMAIL_CLIP_BYTES;
+  gauge.dataset.level = ratio >= 1 ? 'over' : ratio >= 0.8 ? 'near' : 'ok';
+  $('sizeLabel').textContent = formatBytes(bytes);
+  $('sizeFill').style.setProperty('--ratio', String(Math.min(1, ratio)));
 }

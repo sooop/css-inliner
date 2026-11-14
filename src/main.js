@@ -1,336 +1,649 @@
 import {
-  initUIController,
+  $,
+  store,
+  initTabs,
+  switchTab,
+  activeTab,
+  onTabChange,
+  initDropdowns,
   initTheme,
   initResizer,
-  initModal,
-  initAutoSave,
-  initKeyboardShortcuts,
-  handleCSSFileUpload,
-  copyInlineCode,
-  updatePreview,
-  displayInlineCode,
-  showToast,
-  initDragDrop,
-  initHistoryModal,
+  initOptionsPanel,
+  initWarnings,
+  initCodeView,
   updateCssBadge,
-  renderWarnings
+  updatePreview,
+  updateZoomBadge,
+  updateGauge,
+  displayCode,
+  renderWarnings,
+  showToast,
+  copyText,
+  downloadText,
+  bindDropZone,
+  guardWindowDrops,
+  matchesFile
 } from './modules/ui-controller.js';
-import { convertToInline, createPreview, createInlinePreview, previewViewportWidth, DEFAULT_RENDER_WIDTH } from './modules/css-converter.js';
+import { createEditor } from './modules/editor.js';
+import { initHistoryDrawer } from './modules/history-drawer.js';
+import {
+  convertToInline,
+  createPreview,
+  createInlinePreview,
+  previewViewportWidth,
+  DEFAULT_RENDER_WIDTH
+} from './modules/css-converter.js';
 import {
   getTemplateCSS,
   getWebOverridesCSS,
-  downloadTemplateCSS,
-  copyTemplateCSS
+  downloadTemplateCSS
 } from './modules/template-manager.js';
 import { removeWhitespace } from './modules/utils.js';
-import { SAMPLES, DEFAULT_SAMPLE_ID, getSample } from './modules/sample-manager.js';
-import {
-  saveHistory,
-  loadHistoryList,
-  loadHistoryItem,
-  deleteHistoryItem,
-  clearHistory
-} from './modules/history-manager.js';
+import { SAMPLES } from './modules/sample-manager.js';
+import { saveHistory, HISTORY_LIMIT } from './modules/history-manager.js';
 
-// UI 컨트롤러 초기화
-initUIController();
+const MAX_FILE_BYTES = 2 * 1024 * 1024;
+const AUTOSAVE_DELAY = 1500;
+const REPLACE_WINDOW = 90 * 1000;
+const TYPING_DEBOUNCE = 600;
+
+/* --------------------------------------------------------------------------
+   초기화
+   -------------------------------------------------------------------------- */
+
 initTheme();
+initTabs();
+initDropdowns();
 initResizer();
-initModal();
-initAutoSave();
-initKeyboardShortcuts();
-initDragDrop();
-initHistoryModal(loadHistoryList, loadHistoryItem, deleteHistoryItem, clearHistory, showToast);
+initWarnings();
+initCodeView();
+guardWindowDrops();
 
-// 샘플 HTML — 저장된 입력이 없으면 기본 샘플로 시작한다
-{
-  const htmlTextarea = document.getElementById('htmlInput');
-  const sampleMenu = document.getElementById('sampleMenu');
+const htmlEditor = createEditor($('htmlEditor'), { meta: $('htmlMeta') });
+const cssEditor = createEditor($('cssEditor'), { meta: $('cssMeta') });
 
-  const loadSample = (sample) => {
-    htmlTextarea.value = sample.html;
-    htmlTextarea.classList.remove('input-error');
-    localStorage.setItem('html-input-content', sample.html);
-    showToast(`'${sample.label}' 샘플을 불러왔습니다.`, 'success');
-  };
+const convertBtn = $('convertBtn');
+const paneRight = $('paneRight');
+const useBuiltInCSS = $('useBuiltInCSS');
+const autoConvert = $('autoConvert');
+const renderWidthInput = $('renderWidth');
+const profileToggle = $('profileToggle');
 
-  for (const sample of SAMPLES) {
-    const btn = document.createElement('button');
-    btn.textContent = sample.label;
-    btn.addEventListener('click', () => {
-      const current = htmlTextarea.value.trim();
-      const isSample = SAMPLES.some(s => s.html.trim() === current);
-      if (current && !isSample && !confirm('입력한 HTML이 샘플로 대체됩니다. 계속할까요?')) return;
-      loadSample(sample);
-    });
-    sampleMenu.appendChild(btn);
-  }
+// 예전 버전이 남긴 입력 자동 복원 값 — 이제 항상 빈 화면으로 시작한다
+store.remove('html-input-content');
 
-  if (!htmlTextarea.value.trim()) htmlTextarea.value = getSample(DEFAULT_SAMPLE_ID).html;
+/* --- 설정 복원 (입력과 무관한 값만 기억한다) --- */
+
+const OPTION_KEYS = {
+  autoConvert: 'auto-convert',
+  removeWhitespace: 'remove-whitespace',
+  bodyOnly: 'body-only',
+  wrapBody: 'wrap-body',
+  newTabLinks: 'new-tab-links',
+  mailSafeLayout: 'mail-safe-layout',
+  useBuiltInCSS: 'use-builtin-css'
+};
+
+for (const [id, key] of Object.entries(OPTION_KEYS)) {
+  const input = $(id);
+  const saved = store.get(key);
+  if (saved === 'true' || saved === 'false') input.checked = saved === 'true';
+  input.addEventListener('change', () => {
+    store.set(key, input.checked);
+    onSettingChange();
+  });
 }
 
-// CSS 배지 초기 업데이트
-updateCssBadge();
+const optionsPanel = initOptionsPanel();
 
-// 출력 프로파일 (이메일 / 웹) 토글
-// 이력 복원이 버튼 상태만 바꿔도 반영되도록 DOM을 단일 출처로 삼는다
+function clampWidth(value) {
+  const number = parseInt(value, 10);
+  if (!Number.isFinite(number)) return DEFAULT_RENDER_WIDTH;
+  return Math.min(1600, Math.max(320, number));
+}
+
+renderWidthInput.value = clampWidth(store.get('render-width') || DEFAULT_RENDER_WIDTH);
+renderWidthInput.addEventListener('change', () => {
+  renderWidthInput.value = clampWidth(renderWidthInput.value);
+  store.set('render-width', renderWidthInput.value);
+  onSettingChange();
+});
+
 function getProfile() {
-  const active = document.querySelector('.profile-btn.active');
-  return active ? active.getAttribute('data-profile') : 'email';
+  return profileToggle.dataset.value === 'web' ? 'web' : 'email';
 }
 
 function applyProfile(profile) {
-  document.querySelectorAll('.profile-btn').forEach((b) => {
-    b.classList.toggle('active', b.getAttribute('data-profile') === profile);
+  const value = profile === 'web' ? 'web' : 'email';
+  profileToggle.dataset.value = value;
+  profileToggle.querySelectorAll('.profile-btn').forEach((btn) => {
+    const active = btn.dataset.profile === value;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
-  localStorage.setItem('output-profile', profile);
+  store.set('output-profile', value);
 }
-applyProfile(localStorage.getItem('output-profile') || 'email');
+applyProfile(store.get('output-profile'));
 
-document.getElementById('profileToggle').addEventListener('click', (e) => {
+profileToggle.addEventListener('click', (e) => {
   const btn = e.target.closest('.profile-btn');
-  if (!btn) return;
-  applyProfile(btn.getAttribute('data-profile'));
+  if (!btn || btn.dataset.profile === getProfile()) return;
+  applyProfile(btn.dataset.profile);
+  onSettingChange();
 });
 
-// 변환 옵션 복원/저장
-const wrapBodyInput = document.getElementById('wrapBody');
-const mailSafeLayoutInput = document.getElementById('mailSafeLayout');
-const renderWidthInput = document.getElementById('renderWidth');
-const newTabLinksInput = document.getElementById('newTabLinks');
+// 사용자 CSS 는 여러 메일에 걸쳐 쓰는 스타일시트라 계속 기억한다
+cssEditor.setValue(store.get('css-input-content') || '');
+updateCssBadge();
 
-const savedWrapBody = localStorage.getItem('wrap-body');
-if (savedWrapBody !== null) wrapBodyInput.checked = savedWrapBody === 'true';
-const savedMailSafe = localStorage.getItem('mail-safe-layout');
-if (savedMailSafe !== null) mailSafeLayoutInput.checked = savedMailSafe === 'true';
-const savedNewTab = localStorage.getItem('new-tab-links');
-if (savedNewTab !== null) newTabLinksInput.checked = savedNewTab === 'true';
-const savedRenderWidth = localStorage.getItem('render-width');
-if (savedRenderWidth) renderWidthInput.value = savedRenderWidth;
+/* --------------------------------------------------------------------------
+   상태
+   -------------------------------------------------------------------------- */
 
-wrapBodyInput.addEventListener('change', () => {
-  localStorage.setItem('wrap-body', wrapBodyInput.checked);
-});
-mailSafeLayoutInput.addEventListener('change', () => {
-  localStorage.setItem('mail-safe-layout', mailSafeLayoutInput.checked);
-});
-newTabLinksInput.addEventListener('change', () => {
-  localStorage.setItem('new-tab-links', newTabLinksInput.checked);
-});
-renderWidthInput.addEventListener('change', () => {
-  localStorage.setItem('render-width', renderWidthInput.value);
-});
+const state = {
+  result: '', // 마지막 변환 결과
+  convertedKey: '', // 그 결과를 만든 입력+설정
+  busy: false,
+  queued: false,
+  dirty: false, // 사용자가 입력을 바꿨는가 (샘플·이력에서 불러온 직후는 false)
+  autosaveId: null, // 직전 자동 저장 항목 (타이핑 중간 상태를 교체하기 위해)
+  autosaveAt: 0,
+  notifiedLimit: false
+};
 
-function getRenderWidth() {
-  const value = parseInt(renderWidthInput.value, 10);
-  if (!Number.isFinite(value)) return DEFAULT_RENDER_WIDTH;
-  return Math.min(1600, Math.max(320, value));
+function readInput() {
+  return {
+    htmlInput: htmlEditor.value,
+    cssInput: cssEditor.value,
+    useBuiltInCSS: useBuiltInCSS.checked
+  };
 }
 
-// 단축키 모달
-const shortcutsModal = document.getElementById('shortcutsModal');
-document.getElementById('shortcutsBtn').addEventListener('click', () => shortcutsModal.showModal());
-document.getElementById('closeShortcutsModal').addEventListener('click', () => shortcutsModal.close());
-document.getElementById('closeShortcutsOkBtn').addEventListener('click', () => shortcutsModal.close());
-shortcutsModal.addEventListener('click', (e) => { if (e.target === shortcutsModal) shortcutsModal.close(); });
+function currentKey() {
+  return JSON.stringify([
+    htmlEditor.value,
+    cssEditor.value,
+    useBuiltInCSS.checked,
+    getProfile(),
+    clampWidth(renderWidthInput.value),
+    $('removeWhitespace').checked,
+    $('bodyOnly').checked,
+    $('wrapBody').checked,
+    $('newTabLinks').checked,
+    $('mailSafeLayout').checked
+  ]);
+}
 
-// CSS 파일 버튼
-document.getElementById('cssFileBtn').addEventListener('click', () => {
-  document.getElementById('cssFile').click();
-});
+function updateStale() {
+  const stale = !!state.result && !state.busy && currentKey() !== state.convertedKey;
+  $('staleFlag').hidden = !stale;
+  convertBtn.classList.toggle('attention', stale);
+}
 
-// CSS 파일 업로드
-document.getElementById('cssFile').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    handleCSSFileUpload(file, (content) => {
-      document.getElementById('cssInput').value = content;
-      document.getElementById('useBuiltInCSS').checked = false;
-      updateCssBadge();
-    });
+/* --------------------------------------------------------------------------
+   변환
+   -------------------------------------------------------------------------- */
+
+let busyTimer = 0;
+let doneTimer = 0;
+
+function setBusy(busy) {
+  clearTimeout(busyTimer);
+  if (busy) {
+    // 금방 끝나는 변환은 로딩 표시를 띄우지 않는다
+    busyTimer = setTimeout(() => {
+      clearTimeout(doneTimer);
+      convertBtn.dataset.state = 'busy';
+      convertBtn.setAttribute('aria-busy', 'true');
+      paneRight.classList.add('is-busy');
+      $('convertProgress').classList.add('active');
+    }, 150);
+  } else {
+    if (convertBtn.dataset.state === 'busy') delete convertBtn.dataset.state;
+    convertBtn.removeAttribute('aria-busy');
+    paneRight.classList.remove('is-busy');
+    $('convertProgress').classList.remove('active');
   }
-});
+}
 
-// 내장 CSS 체크박스 변경 시 배지 업데이트
-document.getElementById('useBuiltInCSS').addEventListener('change', updateCssBadge);
-document.getElementById('cssInput').addEventListener('input', updateCssBadge);
+function showDone() {
+  clearTimeout(doneTimer);
+  convertBtn.dataset.state = 'done';
+  doneTimer = setTimeout(() => {
+    if (convertBtn.dataset.state === 'done') delete convertBtn.dataset.state;
+  }, 900);
+}
 
-// 템플릿 CSS 다운로드
-document.getElementById('downloadTemplateBtn').addEventListener('click', () => {
-  downloadTemplateCSS(showToast);
-});
+function clearResult() {
+  state.result = '';
+  state.convertedKey = '';
+  displayCode('');
+  renderWarnings([]);
+  updateGauge(0);
+  $('statsLabel').textContent = '';
+  $('emptyState').classList.remove('gone');
+  $('zoomBadge').hidden = true;
+  $('copyCodeBtn').disabled = true;
+  $('downloadCodeBtn').disabled = true;
+  updateStale();
+}
 
-// 템플릿 CSS 복사
-document.getElementById('copyTemplateBtn').addEventListener('click', () => {
-  copyTemplateCSS(showToast);
-});
+async function convert({ manual = false } = {}) {
+  const html = htmlEditor.value;
 
-// 인라인 코드 다운로드 버튼
-document.getElementById('downloadCodeBtn').addEventListener('click', () => {
-  const code = document.getElementById('inlineCode').textContent;
-  if (!code || code.includes('변환 버튼을 클릭')) {
-    showToast('다운로드할 콘텐츠가 없습니다.', 'error');
+  if (!html.trim()) {
+    if (manual) {
+      const editor = $('htmlEditor');
+      editor.classList.remove('input-error');
+      void editor.offsetWidth;
+      editor.classList.add('input-error');
+      switchTab('input', 'panel-html');
+      htmlEditor.focus();
+      showToast('HTML을 입력하세요', 'error');
+    } else if (state.result) {
+      clearResult();
+    }
     return;
   }
 
-  const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `inline-${Date.now()}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
-
-  showToast('파일이 다운로드되었습니다.', 'success');
-});
-
-// 인라인 코드 복사 버튼
-document.getElementById('copyCodeBtn').addEventListener('click', () => {
-  const code = document.getElementById('inlineCode').textContent;
-  if (code && !code.includes('변환 버튼을 클릭')) {
-    navigator.clipboard.writeText(code).then(() => {
-      showToast('복사되었습니다!', 'success');
-    });
-  } else {
-    showToast('복사할 콘텐츠가 없습니다.', 'error');
-  }
-});
-
-// 인라인 미리보기 탭 복사 버튼
-document.getElementById('copyInlinePreviewBtn').addEventListener('click', () => {
-  const code = document.getElementById('inlineCode').textContent;
-  if (code && !code.includes('변환 버튼을 클릭')) {
-    navigator.clipboard.writeText(code).then(() => {
-      showToast('복사되었습니다!', 'success');
-    });
-  } else {
-    showToast('복사할 콘텐츠가 없습니다.', 'error');
-  }
-});
-
-// 스타일 미리보기 탭 복사 버튼
-document.getElementById('copyPreviewBtn').addEventListener('click', () => {
-  const code = document.getElementById('inlineCode').textContent;
-  if (code && !code.includes('변환 버튼을 클릭')) {
-    navigator.clipboard.writeText(code).then(() => {
-      showToast('복사되었습니다!', 'success');
-    });
-  } else {
-    showToast('복사할 콘텐츠가 없습니다.', 'error');
-  }
-});
-
-// HTML textarea 에러 상태 해제
-document.getElementById('htmlInput').addEventListener('input', () => {
-  document.getElementById('htmlInput').classList.remove('input-error');
-});
-
-// 변환 버튼
-document.getElementById('convertBtn').addEventListener('click', () => {
-  const htmlInput = document.getElementById('htmlInput').value;
-  const htmlTextarea = document.getElementById('htmlInput');
-  const convertBtn = document.getElementById('convertBtn');
-
-  if (!htmlInput.trim()) {
-    showToast('HTML 입력이 필요합니다.', 'error');
-    htmlTextarea.classList.add('input-error');
-    htmlTextarea.focus();
+  // 변환은 한 번에 하나만. 도중에 들어온 요청은 끝난 뒤 최신 입력으로 한 번만 다시 돈다
+  if (state.busy) {
+    state.queued = true;
     return;
   }
 
-  runConversion(htmlInput, convertBtn);
-});
-
-async function runConversion(htmlInput, convertBtn) {
-  // 로딩 상태 시작
-  convertBtn.disabled = true;
-  convertBtn.classList.add('loading');
-  convertBtn.textContent = '변환 중...';
+  state.busy = true;
+  setBusy(true);
+  const key = currentKey();
+  let ok = false;
 
   try {
-    const userCSS = document.getElementById('cssInput').value;
-    const useBuiltInCSS = document.getElementById('useBuiltInCSS').checked;
-    const renderWidth = getRenderWidth();
+    const userCSS = cssEditor.value;
+    const renderWidth = clampWidth(renderWidthInput.value);
     const profile = getProfile();
+    const bodyOnly = $('bodyOnly').checked;
 
     // CSS 결합 (웹 프로파일은 제목 크기 오버라이드를 템플릿 뒤에 덧붙임)
     const webOverrides = profile === 'web' ? '\n' + getWebOverridesCSS() : '';
-    const finalCSS = useBuiltInCSS ? getTemplateCSS() + webOverrides + '\n' + userCSS : userCSS;
+    const finalCSS = useBuiltInCSS.checked ? getTemplateCSS() + webOverrides + '\n' + userCSS : userCSS;
 
-    // 스타일 미리보기 생성 (변환과 동일한 폭으로 렌더)
-    const previewHTML = createPreview(htmlInput, finalCSS, renderWidth);
-    updatePreview('previewFrame', previewHTML, previewViewportWidth(renderWidth));
-
-    // 인라인 변환
-    const bodyOnly = document.getElementById('bodyOnly').checked;
-    const conversion = await convertToInline(htmlInput, finalCSS, {
+    const conversion = await convertToInline(html, finalCSS, {
       bodyOnly,
       profile,
       renderWidth,
-      wrapBody: wrapBodyInput.checked,
-      mailSafeLayout: mailSafeLayoutInput.checked,
-      newTabLinks: newTabLinksInput.checked
+      wrapBody: $('wrapBody').checked,
+      mailSafeLayout: $('mailSafeLayout').checked,
+      newTabLinks: $('newTabLinks').checked
     });
 
     let result = conversion.html;
+    if ($('removeWhitespace').checked) result = removeWhitespace(result);
 
-    // 공백 제거
-    if (document.getElementById('removeWhitespace').checked) {
-      result = removeWhitespace(result);
-    }
+    // 미리보기 두 가지 (변환과 동일한 폭으로 렌더)
+    const viewport = previewViewportWidth(renderWidth);
+    updatePreview('previewFrame', createPreview(html, finalCSS, renderWidth), viewport);
+    updatePreview('inlinePreviewFrame', createInlinePreview(result, renderWidth, { hasWrapper: !bodyOnly }), viewport);
 
-    // 인라인 미리보기 생성
-    const inlinePreviewHTML = createInlinePreview(result, renderWidth, {
-      hasWrapper: !bodyOnly
-    });
-    updatePreview('inlinePreviewFrame', inlinePreviewHTML, previewViewportWidth(renderWidth));
-
-    // 인라인 코드 표시
-    displayInlineCode(result);
+    displayCode(result);
     renderWarnings(conversion.warnings);
 
-    // empty state 숨기기
-    document.getElementById('emptyInlinePreview').style.display = 'none';
-    document.getElementById('emptyPreview').style.display = 'none';
+    const bytes = new Blob([result]).size;
+    updateGauge(bytes);
+    const stats = conversion.stats || {};
+    $('statsLabel').textContent = [
+      Number.isFinite(stats.elements) ? `요소 ${stats.elements.toLocaleString()}개` : '',
+      profile === 'web' ? '웹' : '이메일'
+    ]
+      .filter(Boolean)
+      .join(' · ');
 
-    // 변환 완료 애니메이션 (오버레이)
-    const paneRight = document.querySelector('.pane-right');
-    const overlay = document.createElement('div');
-    overlay.className = 'success-overlay';
-    overlay.innerHTML = '<div class="success-overlay-icon">✓</div>';
-    paneRight.appendChild(overlay);
-    setTimeout(() => overlay.remove(), 800);
+    state.result = result;
+    state.convertedKey = key;
+    $('emptyState').classList.add('gone');
+    $('copyCodeBtn').disabled = false;
+    $('downloadCodeBtn').disabled = false;
+    updateZoomBadge();
 
-    // 자동 최대화 옵션 확인
-    const autoMaximize = localStorage.getItem('auto-maximize-result') === 'true';
-    if (autoMaximize) {
-      const paneLeft = document.querySelector('.pane-left');
-      paneLeft.style.flex = '0.1';
-      paneRight.style.flex = '0.9';
-    }
-
-    // 이력 저장
-    saveHistory({
-      htmlInput: htmlInput,
-      cssInput: finalCSS,
-      options: {
-        useBuiltInCSS: useBuiltInCSS,
-        bodyOnly: bodyOnly,
-        removeWhitespace: document.getElementById('removeWhitespace').checked,
-        profile,
-        renderWidth,
-        wrapBody: wrapBodyInput.checked,
-        newTabLinks: newTabLinksInput.checked,
-        mailSafeLayout: mailSafeLayoutInput.checked
-      }
-    });
+    paneRight.classList.remove('flash');
+    void paneRight.offsetWidth;
+    paneRight.classList.add('flash');
+    ok = true;
   } catch (error) {
     console.error(error);
-    showToast(`변환에 실패했습니다: ${error.message}`, 'error');
+    showToast(`변환하지 못했습니다: ${error.message}`, 'error', 4000);
   } finally {
-    // 로딩 상태 해제
-    convertBtn.disabled = false;
-    convertBtn.classList.remove('loading');
-    convertBtn.textContent = '변환';
+    state.busy = false;
+    setBusy(false);
+    if (ok && manual) showDone();
+    updateStale();
+  }
+
+  if (ok) scheduleAutosave();
+
+  if (state.queued) {
+    state.queued = false;
+    convert();
   }
 }
+
+let autoTimer = 0;
+function scheduleConvert(delay) {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => convert(), delay);
+}
+
+function onSettingChange() {
+  optionsPanel.renderSummary();
+  updateStale();
+  if (autoConvert.checked && htmlEditor.value.trim()) scheduleConvert(120);
+}
+
+/* --------------------------------------------------------------------------
+   이력 자동 저장
+   -------------------------------------------------------------------------- */
+
+let autosaveTimer = 0;
+
+async function persistHistory() {
+  clearTimeout(autosaveTimer);
+  if (!state.dirty || !htmlEditor.value.trim()) return;
+
+  const now = Date.now();
+  // 타이핑 중간 상태가 쌓이지 않게, 방금 저장한 항목이 있으면 그 항목을 교체한다
+  const replaceId = state.autosaveId && now - state.autosaveAt < REPLACE_WINDOW ? state.autosaveId : null;
+  const outcome = await saveHistory(readInput(), { replaceId });
+  state.dirty = false;
+
+  if (outcome.tooLarge) {
+    showToast('HTML이 너무 커서 이력에 저장하지 않았습니다', 'info', 4000);
+    return;
+  }
+  if (outcome.skipped) return;
+  if (outcome.cssDropped) showToast('CSS가 너무 커서 이력에는 HTML만 저장했습니다', 'info', 4000);
+  if (outcome.pruned && !state.notifiedLimit) {
+    state.notifiedLimit = true;
+    showToast(`이력은 ${HISTORY_LIMIT}건까지 보관하며 오래된 것부터 정리됩니다`, 'info', 4000);
+  }
+
+  state.autosaveId = outcome.id;
+  state.autosaveAt = now;
+  historyDrawer.refreshCount();
+}
+
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  if (state.dirty) autosaveTimer = setTimeout(persistHistory, AUTOSAVE_DELAY);
+}
+
+// 입력을 통째로 바꾸기 직전에, 지금 입력이 이력에 남도록 한다
+async function beforeReplace() {
+  await persistHistory();
+  state.autosaveId = null; // 이후 저장은 새 항목으로
+}
+
+/* --------------------------------------------------------------------------
+   입력 이벤트
+   -------------------------------------------------------------------------- */
+
+let pasted = false;
+
+function onUserInput() {
+  state.dirty = true;
+  clearTimeout(autosaveTimer);
+  updateStale();
+  if (autoConvert.checked) {
+    scheduleConvert(pasted ? 60 : TYPING_DEBOUNCE);
+  }
+  pasted = false;
+}
+
+htmlEditor.textarea.addEventListener('paste', () => {
+  pasted = true;
+  state.autosaveId = null; // 붙여넣기는 다른 입력으로 본다
+});
+htmlEditor.textarea.addEventListener('input', () => {
+  $('htmlEditor').classList.remove('input-error');
+  onUserInput();
+});
+
+let cssSaveTimer = 0;
+function rememberCSS() {
+  clearTimeout(cssSaveTimer);
+  cssSaveTimer = setTimeout(() => store.set('css-input-content', cssEditor.value), 400);
+}
+
+cssEditor.textarea.addEventListener('paste', () => {
+  pasted = true;
+});
+cssEditor.textarea.addEventListener('input', () => {
+  updateCssBadge();
+  rememberCSS();
+  onUserInput();
+});
+useBuiltInCSS.addEventListener('change', () => {
+  updateCssBadge();
+  state.dirty = true;
+});
+
+convertBtn.addEventListener('click', () => {
+  clearTimeout(autoTimer);
+  convert({ manual: true });
+});
+
+/* --- 프로그램이 입력을 바꾸는 경로 (샘플, 파일, 이력, 비우기) --- */
+
+async function replaceHTML(value, { dirty }) {
+  await beforeReplace();
+  htmlEditor.setValue(value);
+  $('htmlEditor').classList.remove('input-error');
+  state.dirty = dirty;
+  switchTab('input', 'panel-html');
+  if (value.trim()) convert();
+  else clearResult();
+}
+
+function replaceCSS(value) {
+  cssEditor.setValue(value);
+  store.set('css-input-content', value);
+  updateCssBadge();
+}
+
+// 샘플
+for (const sample of SAMPLES) {
+  const btn = document.createElement('button');
+  btn.setAttribute('role', 'menuitem');
+  btn.textContent = sample.label;
+  btn.addEventListener('click', () => replaceHTML(sample.html, { dirty: false }));
+  $('sampleMenu').appendChild(btn);
+}
+
+// 비우기
+$('clearHtmlBtn').addEventListener('click', async () => {
+  if (!htmlEditor.value) return htmlEditor.focus();
+  await replaceHTML('', { dirty: false });
+  htmlEditor.focus();
+});
+$('clearCssBtn').addEventListener('click', () => {
+  if (cssEditor.value) {
+    replaceCSS('');
+    state.dirty = true;
+    onSettingChange();
+  }
+  cssEditor.focus();
+});
+
+/* --- 파일 열기: 버튼과 드롭이 같은 함수로 모인다 --- */
+
+const FILE_ACCEPT = { exts: ['.html', '.htm', '.txt', '.css'], mimes: ['text/*'] };
+const isCSSFile = (file) => file.name.toLowerCase().endsWith('.css') || file.type === 'text/css';
+
+async function openFiles(files, target) {
+  const accepted = files.filter((file) => matchesFile(file, FILE_ACCEPT));
+  if (!accepted.length) {
+    showToast('HTML 또는 CSS 파일만 열 수 있습니다', 'error');
+    return;
+  }
+
+  // HTML 하나, CSS 하나까지 받는다. 판별이 안 되는 파일은 놓은 자리의 편집기로 간다
+  const picked = {};
+  for (const file of accepted) {
+    const kind = isCSSFile(file) ? 'css' : /\.(html?|txt)$/i.test(file.name) ? 'html' : target;
+    if (!picked[kind]) picked[kind] = file;
+  }
+  const used = Object.values(picked);
+  if (used.length < files.length) showToast(`${used.map((f) => f.name).join(', ')}만 열었습니다`, 'info');
+
+  for (const file of used) {
+    if (file.size > MAX_FILE_BYTES) {
+      showToast(`${file.name}: 2MB를 넘는 파일은 열 수 없습니다`, 'error', 4000);
+      return;
+    }
+  }
+
+  try {
+    if (picked.css) {
+      const text = await picked.css.text();
+      const turnedOff = useBuiltInCSS.checked;
+      replaceCSS(text);
+      // 가져온 파일은 완결된 스타일시트로 보고 내장 CSS 를 끈다
+      useBuiltInCSS.checked = false;
+      store.set(OPTION_KEYS.useBuiltInCSS, false);
+      updateCssBadge();
+      state.dirty = true;
+      if (!picked.html) {
+        switchTab('input', 'panel-css');
+        onSettingChange();
+        if (!autoConvert.checked && htmlEditor.value.trim()) convert();
+      }
+      showToast(turnedOff ? `${picked.css.name} 적용 · 내장 CSS 끔` : `${picked.css.name} 적용`);
+    }
+    if (picked.html) {
+      const text = await picked.html.text();
+      await replaceHTML(text, { dirty: true });
+    }
+  } catch {
+    showToast('파일을 읽지 못했습니다', 'error');
+  }
+}
+
+for (const [buttonId, inputId, target] of [
+  ['htmlFileBtn', 'htmlFile', 'html'],
+  ['cssFileBtn', 'cssFile', 'css']
+]) {
+  $(buttonId).addEventListener('click', () => $(inputId).click());
+  $(inputId).addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    e.target.value = ''; // 같은 파일을 연달아 열 수 있게
+    if (files.length) openFiles(files, target);
+  });
+}
+bindDropZone($('htmlEditor'), (files) => openFiles(files, 'html'));
+bindDropZone($('cssEditor'), (files) => openFiles(files, 'css'));
+
+/* --- 템플릿 CSS --- */
+
+$('downloadTemplateBtn').addEventListener('click', () => downloadTemplateCSS());
+$('copyTemplateBtn').addEventListener('click', async () => {
+  const ok = await copyText(getTemplateCSS());
+  showToast(ok ? '템플릿 CSS를 복사했습니다' : '복사하지 못했습니다', ok ? 'success' : 'error');
+});
+
+/* --------------------------------------------------------------------------
+   결과 동작
+   -------------------------------------------------------------------------- */
+
+let copiedTimer = 0;
+$('copyCodeBtn').addEventListener('click', async () => {
+  if (!state.result) return;
+  const ok = await copyText(state.result);
+  if (!ok) return showToast('복사하지 못했습니다', 'error');
+  const btn = $('copyCodeBtn');
+  btn.classList.add('copied');
+  clearTimeout(copiedTimer);
+  copiedTimer = setTimeout(() => btn.classList.remove('copied'), 1400);
+  showToast('인라인 코드를 복사했습니다');
+});
+
+$('downloadCodeBtn').addEventListener('click', () => {
+  if (!state.result) return;
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  downloadText(state.result, `inline-${stamp}.html`, 'text/html;charset=utf-8');
+});
+
+onTabChange((group, panelId) => {
+  if (group === 'output') {
+    $('wrapToggle').hidden = panelId !== 'code';
+    // 숨어 있던 미리보기는 보이는 순간 ResizeObserver 가 크기를 맞춘다
+    requestAnimationFrame(updateZoomBadge);
+  } else if (group === 'input') {
+    (panelId === 'panel-css' ? cssEditor : htmlEditor).refresh();
+  }
+});
+
+/* --------------------------------------------------------------------------
+   이력
+   -------------------------------------------------------------------------- */
+
+const historyDrawer = initHistoryDrawer({
+  async onLoad(item) {
+    await beforeReplace();
+    // 입력만 복원한다. 변환 옵션은 지금 화면의 설정을 그대로 쓴다
+    replaceCSS(item.cssInput);
+    useBuiltInCSS.checked = !!item.useBuiltInCSS;
+    store.set(OPTION_KEYS.useBuiltInCSS, useBuiltInCSS.checked);
+    updateCssBadge();
+    await replaceHTML(item.htmlInput, { dirty: false });
+  }
+});
+
+/* --------------------------------------------------------------------------
+   단축키
+   -------------------------------------------------------------------------- */
+
+const shortcutsModal = $('shortcutsModal');
+$('shortcutsBtn').addEventListener('click', () => shortcutsModal.showModal());
+$('closeShortcutsModal').addEventListener('click', () => shortcutsModal.close());
+shortcutsModal.addEventListener('click', (e) => {
+  if (e.target === shortcutsModal) shortcutsModal.close();
+});
+
+document.addEventListener('keydown', (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+
+  if (mod && e.key === 'Enter') {
+    e.preventDefault();
+    convertBtn.click();
+  } else if (mod && !e.shiftKey && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    const next = activeTab('input') === 'panel-html' ? 'panel-css' : 'panel-html';
+    switchTab('input', next);
+    (next === 'panel-css' ? cssEditor : htmlEditor).focus();
+  } else if (mod && e.shiftKey && e.key.toLowerCase() === 'c') {
+    e.preventDefault();
+    $('copyCodeBtn').click();
+  } else if (e.key === '?' && !mod && !e.altKey) {
+    const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+    if (tag !== 'textarea' && tag !== 'input' && !shortcutsModal.open) {
+      e.preventDefault();
+      shortcutsModal.showModal();
+    }
+  }
+});
+
+/* --- 모바일: 키보드가 올라와도 편집기가 보이는 영역 안에 들어오게 --- */
+if (window.visualViewport) {
+  const syncViewport = () => {
+    document.documentElement.style.setProperty('--vvh', `${window.visualViewport.height}px`);
+  };
+  window.visualViewport.addEventListener('resize', syncViewport);
+  syncViewport();
+}
+
+// 창을 닫거나 숨길 때 저장 대기 중인 입력을 놓치지 않는다
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') persistHistory();
+});
+
+htmlEditor.focus();
