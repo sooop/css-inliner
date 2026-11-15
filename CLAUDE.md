@@ -50,7 +50,8 @@ npm run preview
 **주요 파라미터:**
 - `options.bodyOnly`: true 시 body 내용만 반환 (기본값: false)
 - `options.profile`: `'email'`(기본) | `'web'`
-- `options.renderWidth`: 변환 시 렌더링할 폭 (기본 1000). 미디어쿼리 평가 기준이며 미리보기도 같은 폭으로 표시된다. 좁은 폭에서 변환해 모바일 분기를 굳혀 버리지 않도록 넉넉한 값을 기본으로 둔다
+- `options.renderWidth`: 콘텐츠 폭 (기본 600). 렌더 iframe·미리보기는 여기에 좌우 고정 여백(`PREVIEW_GUTTER`)을 더한 폭이며, 미리보기에서만 래퍼 폭을 이 값으로 덮어쓴다(결과 HTML은 불변)
+- `options.newTabLinks`: `target`이 없는 `a[href]`에 `target="_blank"` 추가 (기본 true, `#`·mailto·tel·javascript 제외)
 - `options.wrapBody`: body 스타일을 래퍼로 보존 (기본 true)
 - `options.mailSafeLayout`: flex/grid를 block 기반으로 낮춤 (기본 false)
 
@@ -74,8 +75,12 @@ npm run preview
 
 ### 모듈 구조
 
-- **main.js**: 애플리케이션 진입점, 이벤트 바인딩
-- **ui-controller.js**: UI 상태 관리 (탭 전환, 패널 토글, 미리보기 업데이트)
+- **main.js**: 진입점. 변환 흐름(수동·자동 변환, 직렬 실행), 설정 기억, 이력 자동 저장, 파일 열기
+- **ui-controller.js**: 화면 부품 (탭, 드롭다운, 테마, 분할선, 옵션 묶음, 토스트, 미리보기 축소, 경고, 코드 보기, 크기 게이지, 파일 드롭)
+- **editor.js**: 줄번호가 붙은 textarea 편집기
+- **highlight.js**: 결과 HTML 구문 강조 (자체 토크나이저)
+- **history-manager.js**: 이력 저장소 (Dexie, 실패 시 메모리). 입력만 저장하고 해시로 중복을 묶는다
+- **history-drawer.js**: 이력 서랍 UI (검색, 불러오기, 내보내기/가져오기)
 - **css-converter.js**: CSS 인라인 변환 엔진
 - **template-manager.js**: 템플릿 CSS 가져오기/다운로드/복사 (Vite의 `?inline` 임포트 사용)
 - **utils.js**: 유틸리티 함수 (공백 제거, body 추출, 속성 필터링)
